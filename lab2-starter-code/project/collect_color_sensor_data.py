@@ -6,7 +6,8 @@ It must be run on the robot.
 """
 
 # Add your imports here, if any
-from utils.brick import EV3ColorSensor, wait_ready_sensors, TouchSensor
+import os
+from utils.brick import BP, EV3ColorSensor, wait_ready_sensors, TouchSensor
 
 
 COLOR_SENSOR_DATA_FILE = "../data_analysis/color_sensor.csv"
@@ -22,9 +23,9 @@ def collect_color_sensor_data():
     "Collect color sensor data."
     
     
-    if not os.path.exists(COLOR_SENSOR_DATA_FILE):
-        print(f"Error: {COLOR_SENSOR_DATA_FILE} does not exist.")
-        sys.exit(1)
+#     if not os.path.exists(COLOR_SENSOR_DATA_FILE):
+#         print(f"Error: {COLOR_SENSOR_DATA_FILE} does not exist.")
+#         sys.exit(1)
 
     with open(COLOR_SENSOR_DATA_FILE, "a") as color_file:
         
