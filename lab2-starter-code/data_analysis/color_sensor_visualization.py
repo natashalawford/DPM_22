@@ -16,7 +16,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 
-COLOR_SENSOR_DATA_FILE = "color_sensor.csv"
+COLOR_SENSOR_DATA_FILE = "color_sensor_red_new_sensor.csv"
 
 
 def gaussian(x, values):
@@ -33,10 +33,13 @@ with open(COLOR_SENSOR_DATA_FILE, "r") as f:
 
         ### UNIT-VECTOR METHOD ###
         # denominator = sqrt(r ** 2 + g ** 2 + b ** 2)
-
+        if r is None or g is None or b is None:
+            continue
+        
         ### RATIO METHOD ###
         denominator = r + g + b
-        
+        if denominator == 0:
+            continue
         red.append(r / denominator)
         green.append(g / denominator)
         blue.append(b / denominator)
