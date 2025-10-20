@@ -505,6 +505,13 @@ class EV3ColorSensor(Sensor):
     rawred - give list of values [Red, Unknown?]
     id - provide a single integer value based on the sensor's guess of detected color
     """
+    
+    # 
+    COLOR_NAMES_BY_CODE = {
+        0: "none", 1:"black", 2:"blue", 3: "violet", 4:
+        "yellow", 5: "red", 6: "green", 7:"brown"
+        }
+    # 
     class Mode:
         "Mode for the EV3 Color Sensor."
         COMPONENT = "component"
@@ -572,6 +579,15 @@ class EV3ColorSensor(Sensor):
             self.set_mode(self.Mode.RED)
             self.wait_ready()
         return self.get_value()
+    
+    def get_color_name(self):
+        self.set_mode("id")
+        self.wait_ready()
+        color_id = self.get_value()
+        
+        color_name = self.COLOR_NAMES_BY_CODE.get(color_id, "Unknown")
+        
+        return color_name
 
 class EV3GyroSensor(Sensor):
     """

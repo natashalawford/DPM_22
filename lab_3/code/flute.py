@@ -1,5 +1,6 @@
 from utils.brick import wait_ready_sensors, EV3ColorSensor
 from utils.sound import Sound
+import time
 
 color = EV3ColorSensor(4)  # port S4
 wait_ready_sensors()
@@ -19,18 +20,11 @@ print("Show WHITE or an unmapped colour to end.")
 
 try:
     while True:
-        input("Press Enter to read colour (or Ctrl+C to quit)...")
         name = color.get_color_name()
         print("Color name:", name)
 
-        if name is None:
-            print("No color name read -> ending flute subsystem.")
-            break
 
         key = name.lower()
-        if key == "white":
-            print("White detected -> ending flute subsystem.")
-            break
 
         if key in COLOR_TO_SOUND:
             snd = COLOR_TO_SOUND[key]
@@ -38,7 +32,9 @@ try:
             # play and wait until done
             snd.play().wait_done()
         else:
-            print(f"Color '{name}' not mapped -> ending flute subsystem.")
-            break
+            print("No valid color - No note played. Please present a valid color.")
+        
+        time.sleep(0.1)
+            
 except KeyboardInterrupt:
     print("Flute subsystem interrupted by user.")
