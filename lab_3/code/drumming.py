@@ -6,8 +6,8 @@ from utils.brick import TouchSensor, wait_ready_sensors, reset_brick
 # Config parameters
 # ------------------------------
 POWER_LIMIT = 80
-MOTOR_SPEED = 275                 # Speed for Design 1 (Lucy, you may change this)
-MOTOR_PORT = brickpi3.BrickPi3.PORT_D
+MOTOR_SPEED = -275                 # Speed for Design 1 (Lucy, you may change this)
+MOTOR_PORT = brickpi3.BrickPi3.PORT_A
 TOUCH_PORT = 1
 # ------------------------------
 
@@ -47,4 +47,3 @@ try:
 
 except KeyboardInterrupt:
     BP.reset_all()
-    reset_brick()

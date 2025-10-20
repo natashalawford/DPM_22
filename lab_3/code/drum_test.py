@@ -12,7 +12,7 @@ INIT_TIME = 1  # Initialization time (Seconds)
 
 # Allocate resources, initial configuration
 BP = brickpi3.BrickPi3()  # Create BrickPi instance
-AUX_MOTOR = BP.PORT_D  # Auxiliary motor used for test.
+AUX_MOTOR = BP.PORT_A  # Auxiliary motor used for test.
 POWER_LIMIT = 80  # Power limit %
 SPEED_LIMIT = 720  # Degrees / second max
 #NOTE speed 200- 300 for first design

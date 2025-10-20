@@ -1,7 +1,7 @@
 from utils.brick import wait_ready_sensors, EV3ColorSensor
 from utils.sound import Sound
 
-color = EV3ColorSensor(2)  # port S2
+color = EV3ColorSensor(4)  # port S4
 wait_ready_sensors()
 
 # Pre-create Sound objects (slow operation; do it once)

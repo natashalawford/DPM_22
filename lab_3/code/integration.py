@@ -2,8 +2,9 @@ import brickpi3
 import time
 import subprocess
 import signal
-from utils.brick import TouchSensor, wait_ready_sensor, reset_brick
+from utils.brick import TouchSensor, wait_ready_sensors, reset_brick
 
+BP = brickpi3.BrickPi3()
 
 # Initialize sensor
 sensor2 = TouchSensor(2)
@@ -25,11 +26,14 @@ try:
             flute.send_signal(signal.SIGINT)
             drumming.terminate()
             flute.terminate()
+            BP.reset_all()
             break
         time.sleep(0.1)  
 
 except KeyboardInterrupt:
     drumming.terminate()
     flute.terminate()
+    BP.reset_all()
+    
 
 print("All programs closed.")
