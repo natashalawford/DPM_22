@@ -16,7 +16,6 @@ COLOR_TO_SOUND = {
 
 print("Flute subsystem started.")
 print("Mapped colours:", ", ".join(COLOR_TO_SOUND.keys()))
-print("Show WHITE or an unmapped colour to end.")
 
 try:
     while True:
