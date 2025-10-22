@@ -26,7 +26,6 @@ try:
             flute.send_signal(signal.SIGINT)
             drumming.terminate()
             flute.terminate()
-            #flute.stop_flute()
             while True:
                 BP.reset_all()
                 time.sleep(0.1)
@@ -36,9 +35,6 @@ try:
 except KeyboardInterrupt:
     drumming.terminate()
     flute.terminate()
-
-    #BP.reset_all()
-    #reset_brick()
     exit()
 
 print("All programs closed.")
