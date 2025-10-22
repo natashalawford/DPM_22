@@ -1,7 +1,9 @@
+import brickpi3
 from utils.brick import wait_ready_sensors, EV3ColorSensor
 from utils.sound import Sound
 import time
 
+BP = brickpi3.BrickPi3()
 color = EV3ColorSensor(4)  # port S4
 wait_ready_sensors()
 
@@ -32,8 +34,9 @@ try:
             snd.play().wait_done()
         else:
             print("No valid color - No note played. Please present a valid color.")
-        
+
         time.sleep(0.1)
-            
+
 except KeyboardInterrupt:
     print("Flute subsystem interrupted by user.")
+    exit()
