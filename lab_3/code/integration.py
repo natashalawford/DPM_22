@@ -41,5 +41,4 @@ except KeyboardInterrupt:
     #reset_brick()
     exit()
 
-
 print("All programs closed.")
