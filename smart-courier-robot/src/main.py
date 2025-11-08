@@ -1,23 +1,34 @@
 from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError
 import time
 
-FORWARD_SPEED = 75        # speed constant = 30% power
+#DRIVING
+FORWARD_SPEED = 20        # speed constant = 30% power
 SENSOR_POLL_SLEEP = 0.05  # Polling rate = 50 msec
 
+#TURNING
+WHEEL_RADIUS = 0.028
+AXEL_LENGTH = 0.11
+ORIENTTODEG = AXEL_LENGTH / WHEEL_RADIUS
+POWER_LIMIT = 80
+
+#PORTS
 T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
 LEFT_MOTOR = Motor("A")   # Left motor in Port A
 RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 
 def rotate(angle, speed):
     try:
-        set_motor_limits(LEFT_MOTOR, POWER_LIMIT, speed)   # Set speed
-        set_motor_limits(RIGHT_MOTOR, POWER_LIMIT, speed)
-        set_motor_position_relative(LEFT_MOTOR, int(angle * ORIENTTODEG))   # Rotate L wheel +ve
-        set_motor_position_relative(RIGHT_MOTOR, int(-angle * ORIENTTODEG)) # Rotate R wheel -ve
-        Block(RIGHT_MOTOR)
+        LEFT_MOTOR.set_dps(speed)
+        RIGHT_MOTOR.set_dps(speed)
+        LEFT_MOTOR.set_limits(POWER_LIMIT, speed)   # Set speed
+        RIGHT_MOTOR.set_limits(POWER_LIMIT, speed)   # Set speed
+        LEFT_MOTOR.set_position_relative(int(angle * ORIENTTODEG))   # Rotate L wheel +ve
+        RIGHT_MOTOR.set_position_relative(int(-angle * ORIENTTODEG)) # Rotate R wheel -ve
+        wait_for_motor(RIGHT_MOTOR)
         print("i wanna rotate")
     except IOError as error:
         print(error)
+        
 
 
 try:
@@ -31,8 +42,8 @@ try:
         try:
             if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
                 print("Button pressed")
-                #BP.reset_all()
-                rotate(90, 20)
+                rotate(90, 180)
+                BP.reset_all()
                 exit()
             time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
         except SensorError as error:
