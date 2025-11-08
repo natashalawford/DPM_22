@@ -1,21 +1,29 @@
 from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError
 import time
+import math
 
 #DRIVING
 FORWARD_SPEED = 20        # speed constant = 30% power
 SENSOR_POLL_SLEEP = 0.05  # Polling rate = 50 msec
 
 #TURNING
-WHEEL_RADIUS = 0.028
-AXEL_LENGTH = 0.11
+WHEEL_RADIUS = 0.022
+AXEL_LENGTH = 0.078
 ORIENTTODEG = AXEL_LENGTH / WHEEL_RADIUS
 POWER_LIMIT = 80
+MOTOR_POLL_DELAY = 0.05
 
 #PORTS
 T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
 LEFT_MOTOR = Motor("A")   # Left motor in Port A
 RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 
+def wait_for_motor(motor: Motor):
+    while math.isclose(motor.get_speed(), 0):
+        time_sleep(MOTOR_POLL_DELAY)
+    while not math.isclose(motor.get_speed(), 0):
+        time.sleep(MOTOR_POLL_DELAY)
+        
 def rotate(angle, speed):
     try:
         LEFT_MOTOR.set_dps(speed)
