@@ -1,4 +1,4 @@
-from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError
+from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
 import time
 import math
 
@@ -17,6 +17,13 @@ MOTOR_POLL_DELAY = 0.05
 T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
 LEFT_MOTOR = Motor("A")   # Left motor in Port A
 RIGHT_MOTOR = Motor("D")  # Right motor in Port D
+color = EV3ColorSensor(3)
+
+def detect_color():
+    name = color.get_color_name()
+    print("Color name:", name)
+
+
 
 def wait_for_motor(motor: Motor):
     while math.isclose(motor.get_speed(), 0):
@@ -48,6 +55,7 @@ try:
 
     while True:
         try:
+            detect_color()
             if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
                 print("Button pressed")
                 rotate(90, 180)
