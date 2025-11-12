@@ -18,10 +18,30 @@ T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
 LEFT_MOTOR = Motor("A")   # Left motor in Port A
 RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 color = EV3ColorSensor(3)
+COLOR_SENSOR_DATA_FILE="./color_data.csv"
 
 def detect_color():
     name = color.get_color_name()
     print("Color name:", name)
+    with open(COLOR_SENSOR_DATA_FILE, "a") as color_file:
+        
+      
+        
+        try:
+            while True:
+                
+
+                
+                    r, g, b = color.get_rgb()
+
+                    print(f"RGB: {r}, {g}, {b}")
+                    color_file.write(f"{r}, {g}, {b}\n")
+                    color_file.flush()
+
+    
+        except BaseException:
+            print("Stopping collection.")
+            return
 
 
 
