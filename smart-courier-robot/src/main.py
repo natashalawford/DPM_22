@@ -20,7 +20,7 @@ RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 
 def wait_for_motor(motor: Motor):
     while math.isclose(motor.get_speed(), 0):
-        time_sleep(MOTOR_POLL_DELAY)
+        time.sleep(MOTOR_POLL_DELAY)
     while not math.isclose(motor.get_speed(), 0):
         time.sleep(MOTOR_POLL_DELAY)
         
