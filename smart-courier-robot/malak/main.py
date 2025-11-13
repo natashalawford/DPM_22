@@ -24,7 +24,7 @@ COLOR_SENSOR_DATA_FILE="./color_data.csv"
 LAST_COLOR = None
 DOOR_COUNT = 0
 
-us = EV3UltrasonicSensor(4)
+us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
 
 def avoid_walls():
     """Ensure the robot drives straight forward while maintaining at least 10 cm
