@@ -16,8 +16,8 @@ for label_col, value_col in paired_cols:
     color_name = re.sub(r'[^a-zA-Z]', '', label_col).lower()  # simplify column name
 
     # Only keep target colors
-    if any(c in color_name for c in ["red", "orange", "yellow", "green", "black"]):
-        color_general = next((c for c in ["red", "orange", "yellow", "green", "black"] if c in color_name), None)
+    if any(c in color_name for c in ["red", "orange", "yellow", "green", "black", "white"]):
+        color_general = next((c for c in ["red", "orange", "yellow", "green", "black", "white"] if c in color_name), None)
 
         # Extract values
         data = dict(zip(df[label_col], df[value_col]))
@@ -48,3 +48,6 @@ summary = clean_df.groupby("color").agg({
 summary.to_csv("color_summary.csv")
 print("\n=== COLOR SUMMARY ===")
 print(summary)
+
+
+#55.45
