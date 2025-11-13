@@ -21,27 +21,57 @@ color = EV3ColorSensor(3)
 COLOR_SENSOR_DATA_FILE="./color_data.csv"
 
 def detect_color():
-    name = color.get_color_name()
-    print("Color name:", name)
-    with open(COLOR_SENSOR_DATA_FILE, "a") as color_file:
+    """Detect color based on RGB value ranges"""
+    try:
+        r, g, b = color.get_rgb()
+        print(f"RGB: {r}, {g}, {b}")
         
-      
+        # Define color ranges (R_min, R_max, G_min, G_max, B_min, B_max)
+        color_ranges = {
+            "Black": (15, 40, 11, 33, 8, 19),
+            "Green": (90, 102, 120, 128, 16, 22),
+            "Red": (122, 132, 11, 18, 7, 13),
+            "Orange": (145, 205, 56, 77, 9, 16),
+            "Yellow": (142, 242, 101, 165, 13, 24)
+        }
         
-        try:
-            while True:
-                
-
-                
-                    r, g, b = color.get_rgb()
-
-                    print(f"RGB: {r}, {g}, {b}")
-                    color_file.write(f"{r}, {g}, {b}\n")
-                    color_file.flush()
-
-    
-        except BaseException:
-            print("Stopping collection.")
-            return
+        detected_color = "Unknown"
+        
+        # Check each color range in order of specificity
+        if (color_ranges["Black"][0] <= r <= color_ranges["Black"][1] and
+            color_ranges["Black"][2] <= g <= color_ranges["Black"][3] and
+            color_ranges["Black"][4] <= b <= color_ranges["Black"][5]):
+            detected_color = "Black"
+            
+        elif (color_ranges["Green"][0] <= r <= color_ranges["Green"][1] and
+              color_ranges["Green"][2] <= g <= color_ranges["Green"][3] and
+              color_ranges["Green"][4] <= b <= color_ranges["Green"][5]):
+            detected_color = "Green"
+            
+        elif (color_ranges["Red"][0] <= r <= color_ranges["Red"][1] and
+              color_ranges["Red"][2] <= g <= color_ranges["Red"][3] and
+              color_ranges["Red"][4] <= b <= color_ranges["Red"][5]):
+            detected_color = "Red"
+            
+        elif (color_ranges["Orange"][0] <= r <= color_ranges["Orange"][1] and
+              color_ranges["Orange"][2] <= g <= color_ranges["Orange"][3] and
+              color_ranges["Orange"][4] <= b <= color_ranges["Orange"][5]):
+            detected_color = "Orange"
+            
+        elif (color_ranges["Yellow"][0] <= r <= color_ranges["Yellow"][1] and
+              color_ranges["Yellow"][2] <= g <= color_ranges["Yellow"][3] and
+              color_ranges["Yellow"][4] <= b <= color_ranges["Yellow"][5]):
+            detected_color = "Yellow"
+        
+        print(f"Detected color: {detected_color}")
+        return detected_color
+        
+    except SensorError as error:
+        print(f"Color sensor error: {error}")
+        return "Unknown"
+    except BaseException as error:
+        print(f"Unexpected error in detect_color: {error}")
+        return "Unknown"
 
 
 
@@ -78,7 +108,7 @@ try:
             detect_color()
             if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
                 print("Button pressed")
-                rotate(90, 180)
+                #. rotate(90, 180)
                 BP.reset_all()
                 exit()
             time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
