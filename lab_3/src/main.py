@@ -1,0 +1,89 @@
+from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
+import time
+import math
+
+#DRIVING
+FORWARD_SPEED = 20        # speed constant = 30% power
+SENSOR_POLL_SLEEP = 0.05  # Polling rate = 50 msec
+
+#TURNING
+WHEEL_RADIUS = 0.022
+AXEL_LENGTH = 0.078
+ORIENTTODEG = AXEL_LENGTH / WHEEL_RADIUS
+POWER_LIMIT = 80
+MOTOR_POLL_DELAY = 0.05
+
+#PORTS
+T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
+LEFT_MOTOR = Motor("A")   # Left motor in Port A
+RIGHT_MOTOR = Motor("D")  # Right motor in Port D
+color = EV3ColorSensor(3)
+COLOR_SENSOR_DATA_FILE="./color_data.csv"
+
+def detect_color():
+    name = color.get_color_name()
+    print("Color name:", name)
+    with open(COLOR_SENSOR_DATA_FILE, "a") as color_file:
+        
+      
+        
+        try:
+            while True:
+                
+
+                
+                    r, g, b = color.get_rgb()
+
+                    print(f"RGB: {r}, {g}, {b}")
+                    color_file.write(f"{r}, {g}, {b}\n")
+                    color_file.flush()
+
+    
+        except BaseException:
+            print("Stopping collection.")
+            return
+
+
+
+def wait_for_motor(motor: Motor):
+    while math.isclose(motor.get_speed(), 0):
+        time.sleep(MOTOR_POLL_DELAY)
+    while not math.isclose(motor.get_speed(), 0):
+        time.sleep(MOTOR_POLL_DELAY)
+        
+def rotate(angle, speed):
+    try:
+        LEFT_MOTOR.set_dps(speed)
+        RIGHT_MOTOR.set_dps(speed)
+        LEFT_MOTOR.set_limits(POWER_LIMIT, speed)   # Set speed
+        RIGHT_MOTOR.set_limits(POWER_LIMIT, speed)   # Set speed
+        LEFT_MOTOR.set_position_relative(int(angle * ORIENTTODEG))   # Rotate L wheel +ve
+        RIGHT_MOTOR.set_position_relative(int(-angle * ORIENTTODEG)) # Rotate R wheel -ve
+        wait_for_motor(RIGHT_MOTOR)
+        print("i wanna rotate")
+    except IOError as error:
+        print(error)
+        
+
+
+try:
+    wait_ready_sensors() # Wait for sensors to initialize
+    
+    #LEFT_MOTOR.set_power(FORWARD_SPEED) # Start left motor
+    #RIGHT_MOTOR.set_power(FORWARD_SPEED) # Simultaneously start right motor
+    print("motors set up and running")
+
+    while True:
+        try:
+            detect_color()
+            if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
+                print("Button pressed")
+                rotate(90, 180)
+                BP.reset_all()
+                exit()
+            time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
+        except SensorError as error:
+            print(error) # On exception or error, print error code
+
+except KeyboardInterrupt: # Allows program to be stopped on keyboard interrupt
+    BP.reset_all()

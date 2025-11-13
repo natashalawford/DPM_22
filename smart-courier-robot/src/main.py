@@ -1,4 +1,4 @@
-from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
+from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
 import time
 import math
 
@@ -12,6 +12,14 @@ AXEL_LENGTH = 0.078
 ORIENTTODEG = AXEL_LENGTH / WHEEL_RADIUS
 POWER_LIMIT = 80
 MOTOR_POLL_DELAY = 0.05
+TURNING = "neutral"
+
+# State for detecting Yellow -> Green transitions
+LAST_COLOR = None
+DOOR_COUNT = 0
+WALL_DST = 7.6
+
+us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
 
 #PORTS
 T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
@@ -19,6 +27,47 @@ LEFT_MOTOR = Motor("A")   # Left motor in Port A
 RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 color = EV3ColorSensor(3)
 COLOR_SENSOR_DATA_FILE="./color_data.csv"
+
+def path_correction(dist):
+  
+    try:
+         print("path correction activated")
+         print(dist)
+         if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
+                print("Button pressed")
+#                 rotate(90, 180)
+                BP.reset_all()
+                exit()
+         #global TURNING
+         #print(TURNING)
+         if dist > WALL_DST:
+             #and TURNING != "right": # RIGHT
+             print("correcting to the right")
+             diff = dist - WALL_DST
+             LEFT_MOTOR.set_dps(FORWARD_SPEED + (diff*20))
+             RIGHT_MOTOR.set_dps(FORWARD_SPEED - (diff*20))
+             #rotate(-7,40)
+             #print("the difference is" + diff)
+             #LEFT_MOTOR.set_power(FORWARD_SPEED + (diff*5))
+             #RIGHT_MOTOR.set_power(FORWARD_SPEED - (diff*5))
+             #TURNING = "right"
+             return
+         elif dist < WALL_DST:
+             #and TURNING != "left": # LEFT
+             print("correcting to the left")
+             diff = WALL_DST - dist
+             LEFT_MOTOR.set_dps(FORWARD_SPEED - (diff*20))
+             RIGHT_MOTOR.set_dps(FORWARD_SPEED + (diff*20))
+             #rotate(7,40)
+             #LEFT_MOTOR.set_power(FORWARD_SPEED - (diff*5))
+             #RIGHT_MOTOR.set_power(FORWARD_SPEED + (diff*5))
+             #TURNING = "left"
+             return
+    except Exception as e:
+        # If reading fails, don't change motor state
+        print(f"Ultrasonic read error: {e}")
+        return
+    
 
 def detect_color():
     """Detect color based on RGB value ranges"""
@@ -98,17 +147,24 @@ def rotate(angle, speed):
 
 try:
     wait_ready_sensors() # Wait for sensors to initialize
-    
-    LEFT_MOTOR.set_power(FORWARD_SPEED) # Start left motor
-    RIGHT_MOTOR.set_power(FORWARD_SPEED) # Simultaneously start right motor
-    print("motors set up and running")
-
+    #rotate(90,89)
+    #rotate(-90,89)
+    LEFT_MOTOR.set_dps(FORWARD_SPEED)
+    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
     while True:
         try:
-            detect_color()
+            dist = us.get_value()
+            print(dist)
+            diff = dist - WALL_DST
+            if (diff != 0):
+                path_correction(dist)
+                #LEFT_MOTOR.set_power(FORWARD_SPEED)
+               # RIGHT_MOTOR.set_power(FORWARD_SPEED)
+                
+            #detect_color()
             if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
                 print("Button pressed")
-                #. rotate(90, 180)
+#                 rotate(90, 180)
                 BP.reset_all()
                 exit()
             time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
