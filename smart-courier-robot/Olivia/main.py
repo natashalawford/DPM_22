@@ -1,7 +1,6 @@
 from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
 import time
 import math
-import room_detection
 
 #DRIVING
 FORWARD_SPEED = 100        # speed constant = 30% power
@@ -167,65 +166,97 @@ def rotate(angle, speed):
         print("i wanna rotate")
     except IOError as error:
         print(error)
-
-def drive_fwd_detect_room_and_center(max_time, speed):
-    """
-    Phase 1: Drive forward and detect entering the room.
-    - Drive forward at given speed (dps).
-    - Poll color sensor.
-    - When color becomes Yellow/Orange, mark 'room entered' and stop.
-    - Also stop if max_time is reached or touch sensor is pressed.
-    """
-
-    global LAST_COLOR
-
-    room_entered = False
-    LAST_COLOR = None 
-
-    # Driving forward
-    LEFT_MOTOR.set_limits(POWER_LIMIT, abs(speed))
-    RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(speed))
-    LEFT_MOTOR.set_dps(speed)
-    RIGHT_MOTOR.set_dps(speed)
-
-    start_time = time.time()
-
-    try:
-        while True:
-            if T_SENSOR.is_pressed():
-                print("Touch sensor pressed – stopping.")
-                break
-            
-            #stopping after certain time interval/not using US sensor for distance
-            elapsed = time.time() - start_time
-            if elapsed >= max_time:
-                print("Reached max drive time, stopping.")
-                break
-
-            #Detect color for room detection 
-            current_color = detect_color()
-
-            if not room_entered and current_color in ("Yellow", "Orange"):
-                if LAST_COLOR not in ("Yellow", "Orange"):
-                    room_entered = True
-                    print(f"Entered room")
-                    break
-                if LAST_COLOR in ("Red"):
-                    room_entered = False
-                    print(f"Entered room from Red")
-                    break
-
-            LAST_COLOR = current_color
-
-            time.sleep(SENSOR_POLL_SLEEP)
-
-    finally:
-        LEFT_MOTOR.set_dps(0)
-        RIGHT_MOTOR.set_dps(0)
-        print("end")
         
 
+
 try:
-    room_detection.drive_fwd_detect_room_and_center(10, FORWARD_SPEED)
-except KeyboardInterrupt:
-    print("keyboard interrupt")    
+    wait_ready_sensors() # Wait for sensors to initialize
+    LEFT_MOTOR.set_dps(FORWARD_SPEED)
+    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+    while True:
+        stop_robot()
+        # read ultrasonic sensor and call controller every cycle
+        
+        dist = us.get_value()
+       
+        # controller params (tune these on the robot)
+        Kp = 10.0         # proportional gain (dps per unit distance)
+        DEADBAND_WALL = 0.55
+        DEADBAND = 0.3
+        DEADBAND_ROOM = 0.1 # meters (or same units as your sensor)
+
+        error = WALL_DST - dist
+        print(dist)
+        print(error)
+
+        current_color = detect_color()
+
+        if current_color == "Red":
+            print("Red detected. Not entering room")
+            continue
+
+        if (not room_entered) and current_color in ("Yellow", "Orange"):
+            if LAST_COLOR not in ("Yellow", "Orange"):
+                room_entered = True
+                print(f"Room detected. Total doors entered: {DOOR_COUNT + 1}")
+                DOOR_COUNT += 1
+                break
+
+            # small errors -> keep straight to avoid hunting
+        if abs(error) <= DEADBAND:
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+            print("go straigt")
+        if error < -DEADBAND_ROOM:
+            print("go right")
+
+                # compute wheel speeds
+            left_speed = FORWARD_SPEED + (Kp * error)
+            right_speed = FORWARD_SPEED - (Kp * error)
+
+                # keep speeds within safe range
+            max_speed = POWER_LIMIT
+            left_speed = clamp(left_speed, -max_speed, max_speed)
+            right_speed = clamp(right_speed, -max_speed, max_speed)
+
+                # set limits (power limit, dps limit)
+            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+        elif error > DEADBAND_WALL:
+            print("go left")
+                    
+
+                # compute wheel speeds
+            left_speed = FORWARD_SPEED + (Kp * error)
+            right_speed = FORWARD_SPEED - (Kp * error)
+
+                # keep speeds within safe range
+            max_speed = POWER_LIMIT
+            left_speed = clamp(left_speed, -max_speed, max_speed)
+            right_speed = clamp(right_speed, -max_speed, max_speed)
+
+                # set limits (power limit, dps limit)
+            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
+
+
+        if dist is None:
+            # sensor failed this cycle; don't change motors and keep polling
+            time.sleep(SENSOR_POLL_SLEEP)
+            continue
+
+        # call the path correction controller (handles deadband internally)
+        #path_correction(dist)
+        time.sleep(SENSOR_POLL_SLEEP)
+        
+
+except KeyboardInterrupt: # Allows program to be stopped on keyboard interrupt
+    BP.reset_all()
