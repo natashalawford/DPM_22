@@ -37,7 +37,8 @@ def stop_robot():
         time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
     except SensorError as error:
         print(error) # On exception or error, print error code
-
+def clamp(v, lo, hi):
+        return max(lo, min(hi, v))
 def path_correction(dist):
     # Use a proportional controller to steer the robot so it holds a
     # target distance from the wall on the right. The mapping used is:
@@ -46,8 +47,7 @@ def path_correction(dist):
     #  right_speed = base + Kp * error
     # This results in left>right (turn right) when dist > WALL_DST
     # and right>left (turn left) when dist < WALL_DST.
-    def clamp(v, lo, hi):
-        return max(lo, min(hi, v))
+    
 
     try:
         # basic safety checks
@@ -84,7 +84,8 @@ def path_correction(dist):
 
         LEFT_MOTOR.set_dps(left_speed)
         RIGHT_MOTOR.set_dps(right_speed)
-        print(f"path correction: dist={dist:.2f} error={error:.2f} L={left_speed:.1f} R={right_speed:.1f}")
+        LEFT_MOTOR.set_dps(FORWARD_SPEED)
+        RIGHT_MOTOR.set_dps(FORWARD_SPEED)
 
     except Exception as e:
         # If reading fails, don't change motor state
@@ -180,6 +181,59 @@ try:
         except Exception as e:
             print(f"Ultrasonic get_value error: {e}")
             dist = None
+            # controller params (tune these on the robot)
+            Kp = 8.0           # proportional gain (dps per unit distance)
+            DEADBAND = 0.2     # meters (or same units as your sensor)
+
+            error = WALL_DST - dist
+            # small errors -> keep straight to avoid hunting
+            if error > DEADBAND:
+                
+
+                # compute wheel speeds
+                left_speed = FORWARD_SPEED - (Kp * error)
+                right_speed = FORWARD_SPEED + (Kp * error)
+
+                # keep speeds within safe range
+                max_speed = POWER_LIMIT
+                left_speed = clamp(left_speed, -max_speed, max_speed)
+                right_speed = clamp(right_speed, -max_speed, max_speed)
+
+                # set limits (power limit, dps limit)
+                LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+                RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+
+                LEFT_MOTOR.set_dps(left_speed)
+                RIGHT_MOTOR.set_dps(right_speed)
+                LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+            elif error < -DEADBAND:
+                    
+
+                # compute wheel speeds
+                left_speed = FORWARD_SPEED + (Kp * error)
+                right_speed = FORWARD_SPEED - (Kp * error)
+
+                # keep speeds within safe range
+                max_speed = POWER_LIMIT
+                left_speed = clamp(left_speed, -max_speed, max_speed)
+                right_speed = clamp(right_speed, -max_speed, max_speed)
+
+                # set limits (power limit, dps limit)
+                LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+                RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+
+                LEFT_MOTOR.set_dps(left_speed)
+                RIGHT_MOTOR.set_dps(right_speed)
+                LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+
+        except Exception as e:
+            # If reading fails, don't change motor state
+            print(f"Ultrasonic read error: {e}")
+            
+    
+
 
         if dist is None:
             # sensor failed this cycle; don't change motors and keep polling
