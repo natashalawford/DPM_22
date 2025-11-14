@@ -182,11 +182,14 @@ try:
             print(f"Ultrasonic get_value error: {e}")
             dist = None
             # controller params (tune these on the robot)
-            Kp = 8.0           # proportional gain (dps per unit distance)
+            Kp = 4.0          # proportional gain (dps per unit distance)
             DEADBAND = 0.2     # meters (or same units as your sensor)
 
             error = WALL_DST - dist
             # small errors -> keep straight to avoid hunting
+            if abs(error) <= DEADBAND:
+                LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
             if error > DEADBAND:
                 
 
@@ -225,8 +228,7 @@ try:
 
                 LEFT_MOTOR.set_dps(left_speed)
                 RIGHT_MOTOR.set_dps(right_speed)
-                LEFT_MOTOR.set_dps(FORWARD_SPEED)
-                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+                
 
         except Exception as e:
             # If reading fails, don't change motor state
@@ -241,7 +243,7 @@ try:
             continue
 
         # call the path correction controller (handles deadband internally)
-        path_correction(dist)
+        #path_correction(dist)
         time.sleep(SENSOR_POLL_SLEEP)
         
 
