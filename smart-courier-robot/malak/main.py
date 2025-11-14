@@ -12,6 +12,14 @@ AXEL_LENGTH = 0.078
 ORIENTTODEG = AXEL_LENGTH / WHEEL_RADIUS
 POWER_LIMIT = 80
 MOTOR_POLL_DELAY = 0.05
+TURNING = "neutral"
+
+# State for detecting Yellow -> Green transitions
+LAST_COLOR = None
+DOOR_COUNT = 0
+WALL_DST = 7.6
+
+us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
 
 #PORTS
 T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
@@ -20,82 +28,122 @@ RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 color = EV3ColorSensor(3)
 COLOR_SENSOR_DATA_FILE="./color_data.csv"
 
-# State for detecting Yellow -> Green transitions
-LAST_COLOR = None
-DOOR_COUNT = 0
-
-us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
-
-def avoid_walls():
-    """Ensure the robot drives straight forward while maintaining at least 10 cm
-    distance from obstacles in front. This function is intended to be called
-    frequently from the main loop; it will set motor powers to drive forward
-    and perform a short backup+turn if an object is detected closer than 10 cm.
-    """
+def stop_robot():
     try:
-        dist = us.get_value()
+        if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
+            print("Button pressed")
+            BP.reset_all()
+            exit()
+        time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
+    except SensorError as error:
+        print(error) # On exception or error, print error code
+
+def path_correction(dist):
+    # Use a proportional controller to steer the robot so it holds a
+    # target distance from the wall on the right. The mapping used is:
+    #  error = WALL_DST - dist
+    #  left_speed  = base - Kp * error
+    #  right_speed = base + Kp * error
+    # This results in left>right (turn right) when dist > WALL_DST
+    # and right>left (turn left) when dist < WALL_DST.
+    def clamp(v, lo, hi):
+        return max(lo, min(hi, v))
+
+    try:
+        # basic safety checks
+        if dist is None:
+            return
+        if T_SENSOR.is_pressed():
+            print("Button pressed")
+            BP.reset_all()
+            exit()
+
+        # controller params (tune these on the robot)
+        Kp = 8.0           # proportional gain (dps per unit distance)
+        DEADBAND = 0.2     # meters (or same units as your sensor)
+
+        error = WALL_DST - dist
+        # small errors -> keep straight to avoid hunting
+        if abs(error) <= DEADBAND:
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+            return
+
+        # compute wheel speeds
+        left_speed = FORWARD_SPEED - (Kp * error)
+        right_speed = FORWARD_SPEED + (Kp * error)
+
+        # keep speeds within safe range
+        max_speed = POWER_LIMIT
+        left_speed = clamp(left_speed, -max_speed, max_speed)
+        right_speed = clamp(right_speed, -max_speed, max_speed)
+
+        # set limits (power limit, dps limit)
+        LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+        RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+
+        LEFT_MOTOR.set_dps(left_speed)
+        RIGHT_MOTOR.set_dps(right_speed)
+        print(f"path correction: dist={dist:.2f} error={error:.2f} L={left_speed:.1f} R={right_speed:.1f}")
+
     except Exception as e:
         # If reading fails, don't change motor state
         print(f"Ultrasonic read error: {e}")
         return
-
-    # If sensor returns None or invalid, do nothing
-    if dist is None:
-        return
-
-    # If obstacle is too close, perform evasive action
-    if dist < 10:
-        print(f"avoid_walls: object too close ({dist} cm). Backing up and turning.")
-        try:
-         
-            # stop and turn to avoid obstacle
-            LEFT_MOTOR.set_power(0)
-            RIGHT_MOTOR.set_power(0)
-            time.sleep(0.05)
-
-            # small rotation (45 degrees) to try a new direction
-            rotate(45, 120)
-
-            # resume forward motion
-            LEFT_MOTOR.set_power(FORWARD_SPEED)
-            RIGHT_MOTOR.set_power(FORWARD_SPEED)
-        except Exception as e:
-            print(f"avoid_walls error during evasive action: {e}")
-    else:
-        # nothing nearby: ensure we drive straight forward
-        LEFT_MOTOR.set_power(FORWARD_SPEED)
-        RIGHT_MOTOR.set_power(FORWARD_SPEED)
+    
 
 def detect_color():
-    global LAST_COLOR, DOOR_COUNT
-    name = color.get_color_name()
-    print("Color name:", name)
-
-    # Detect a transition from Yellow to Green (only when previous read was Yellow
-    # and current read is Green). Increment a counter when that happens.
-    if LAST_COLOR == "Yellow" and name == "Green":
-        DOOR_COUNT += 1
-        print(f"Detected Yellow->Green transition. Count={DOOR_COUNT}")
-        # If we've seen exactly 2 or 3 such transitions, trigger a rotate
-        if DOOR_COUNT in (2, 3):
-            print("Count is 2 or 3 — calling rotate")
-            try:
-                rotate(90, 180)
-            except Exception as e:
-                print(f"rotate() raised an exception: {e}")
-
-    # Update last seen color for next call
-    LAST_COLOR = name
-    # with open(COLOR_SENSOR_DATA_FILE, "a") as color_file:
-    #     try:
-    #         while True:
-    #                 r, g, b = color.get_rgb()
-    #                 print(f"RGB: {r}, {g}, {b}")
-    #                 color_file.write(f"{r}, {g}, {b}\n")
-    #                 color_file.flush()
-    #     except BaseException:
-    #         print("Stopping collection.")
-    #         return
+    """Detect color based on RGB value ranges"""
+    try:
+        r, g, b = color.get_rgb()
+        print(f"RGB: {r}, {g}, {b}")
+        
+        # Define color ranges (R_min, R_max, G_min, G_max, B_min, B_max)
+        color_ranges = {
+            "Black": (15, 40, 11, 33, 8, 19),
+            "Green": (90, 102, 120, 128, 16, 22),
+            "Red": (122, 132, 11, 18, 7, 13),
+            "Orange": (145, 205, 56, 77, 9, 16),
+            "Yellow": (142, 242, 101, 165, 13, 24)
+        }
+        
+        detected_color = "Unknown"
+        
+        # Check each color range in order of specificity
+        if (color_ranges["Black"][0] <= r <= color_ranges["Black"][1] and
+            color_ranges["Black"][2] <= g <= color_ranges["Black"][3] and
+            color_ranges["Black"][4] <= b <= color_ranges["Black"][5]):
+            detected_color = "Black"
+            
+        elif (color_ranges["Green"][0] <= r <= color_ranges["Green"][1] and
+              color_ranges["Green"][2] <= g <= color_ranges["Green"][3] and
+              color_ranges["Green"][4] <= b <= color_ranges["Green"][5]):
+            detected_color = "Green"
+            
+        elif (color_ranges["Red"][0] <= r <= color_ranges["Red"][1] and
+              color_ranges["Red"][2] <= g <= color_ranges["Red"][3] and
+              color_ranges["Red"][4] <= b <= color_ranges["Red"][5]):
+            detected_color = "Red"
+            
+        elif (color_ranges["Orange"][0] <= r <= color_ranges["Orange"][1] and
+              color_ranges["Orange"][2] <= g <= color_ranges["Orange"][3] and
+              color_ranges["Orange"][4] <= b <= color_ranges["Orange"][5]):
+            detected_color = "Orange"
+            
+        elif (color_ranges["Yellow"][0] <= r <= color_ranges["Yellow"][1] and
+              color_ranges["Yellow"][2] <= g <= color_ranges["Yellow"][3] and
+              color_ranges["Yellow"][4] <= b <= color_ranges["Yellow"][5]):
+            detected_color = "Yellow"
+        
+        print(f"Detected color: {detected_color}")
+        return detected_color
+        
+    except SensorError as error:
+        print(f"Color sensor error: {error}")
+        return "Unknown"
+    except BaseException as error:
+        print(f"Unexpected error in detect_color: {error}")
+        return "Unknown"
 
 
 
@@ -118,25 +166,30 @@ def rotate(angle, speed):
     except IOError as error:
         print(error)
         
+
+
 try:
     wait_ready_sensors() # Wait for sensors to initialize
-    
-    LEFT_MOTOR.set_power(FORWARD_SPEED) # Start left motor
-    RIGHT_MOTOR.set_power(FORWARD_SPEED) # Simultaneously start right motor
-    print("motors set up and running")
-
+    LEFT_MOTOR.set_dps(FORWARD_SPEED)
+    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
     while True:
+        stop_robot()
+        # read ultrasonic sensor and call controller every cycle
         try:
-            avoid_walls()
-            detect_color()
-            if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
-                print("Button pressed")
-                rotate(90, 180)
-                BP.reset_all()
-                exit()
-            time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
-        except SensorError as error:
-            print(error) # On exception or error, print error code
+            dist = us.get_value()
+        except Exception as e:
+            print(f"Ultrasonic get_value error: {e}")
+            dist = None
+
+        if dist is None:
+            # sensor failed this cycle; don't change motors and keep polling
+            time.sleep(SENSOR_POLL_SLEEP)
+            continue
+
+        # call the path correction controller (handles deadband internally)
+        path_correction(dist)
+        time.sleep(SENSOR_POLL_SLEEP)
+        
 
 except KeyboardInterrupt: # Allows program to be stopped on keyboard interrupt
     BP.reset_all()
