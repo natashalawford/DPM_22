@@ -3,7 +3,7 @@ import time
 import math
 
 #DRIVING
-FORWARD_SPEED = 20        # speed constant = 30% power
+FORWARD_SPEED = 100        # speed constant = 30% power
 SENSOR_POLL_SLEEP = 0.05  # Polling rate = 50 msec
 
 #TURNING
@@ -17,7 +17,7 @@ TURNING = "neutral"
 # State for detecting Yellow -> Green transitions
 LAST_COLOR = None
 DOOR_COUNT = 0
-WALL_DST = 7.6
+WALL_DST = 7.0
 
 us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
 
@@ -176,65 +176,62 @@ try:
     while True:
         stop_robot()
         # read ultrasonic sensor and call controller every cycle
-        try:
-            dist = us.get_value()
-        except Exception as e:
-            print(f"Ultrasonic get_value error: {e}")
-            dist = None
-            # controller params (tune these on the robot)
-            Kp = 4.0          # proportional gain (dps per unit distance)
-            DEADBAND = 0.2     # meters (or same units as your sensor)
+        
+        dist = us.get_value()
+       
+        # controller params (tune these on the robot)
+        Kp = 10.0         # proportional gain (dps per unit distance)
+        DEADBAND_WALL = 0.55
+        DEADBAND = 0.3
+        DEADBAND_ROOM = 0.1 # meters (or same units as your sensor)
 
-            error = WALL_DST - dist
+        error = WALL_DST - dist
+        print(dist)
+        print(error)
             # small errors -> keep straight to avoid hunting
-            if abs(error) <= DEADBAND:
-                LEFT_MOTOR.set_dps(FORWARD_SPEED)
-                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
-            if error > DEADBAND:
-                
+        if abs(error) <= DEADBAND:
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+            print("go straigt")
+        if error < -DEADBAND_ROOM:
+            print("go right")
 
                 # compute wheel speeds
-                left_speed = FORWARD_SPEED - (Kp * error)
-                right_speed = FORWARD_SPEED + (Kp * error)
+            left_speed = FORWARD_SPEED + (Kp * error)
+            right_speed = FORWARD_SPEED - (Kp * error)
 
                 # keep speeds within safe range
-                max_speed = POWER_LIMIT
-                left_speed = clamp(left_speed, -max_speed, max_speed)
-                right_speed = clamp(right_speed, -max_speed, max_speed)
+            max_speed = POWER_LIMIT
+            left_speed = clamp(left_speed, -max_speed, max_speed)
+            right_speed = clamp(right_speed, -max_speed, max_speed)
 
                 # set limits (power limit, dps limit)
-                LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
-                RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
 
-                LEFT_MOTOR.set_dps(left_speed)
-                RIGHT_MOTOR.set_dps(right_speed)
-                LEFT_MOTOR.set_dps(FORWARD_SPEED)
-                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
-            elif error < -DEADBAND:
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+        elif error > DEADBAND_WALL:
+            print("go left")
                     
 
                 # compute wheel speeds
-                left_speed = FORWARD_SPEED + (Kp * error)
-                right_speed = FORWARD_SPEED - (Kp * error)
+            left_speed = FORWARD_SPEED + (Kp * error)
+            right_speed = FORWARD_SPEED - (Kp * error)
 
                 # keep speeds within safe range
-                max_speed = POWER_LIMIT
-                left_speed = clamp(left_speed, -max_speed, max_speed)
-                right_speed = clamp(right_speed, -max_speed, max_speed)
+            max_speed = POWER_LIMIT
+            left_speed = clamp(left_speed, -max_speed, max_speed)
+            right_speed = clamp(right_speed, -max_speed, max_speed)
 
                 # set limits (power limit, dps limit)
-                LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
-                RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
 
-                LEFT_MOTOR.set_dps(left_speed)
-                RIGHT_MOTOR.set_dps(right_speed)
-                
-
-        except Exception as e:
-            # If reading fails, don't change motor state
-            print(f"Ultrasonic read error: {e}")
-            
-    
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
 
 
         if dist is None:
