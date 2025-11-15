@@ -1,10 +1,11 @@
 import brickpi3
-from utils.brick import wait_ready_sensors, EV3ColorSensor
+from utils.brick import wait_ready_sensors, EV3ColorSensor, BP, TouchSensor, Motor, SensorError
 import time
 import globals
 
 BP = brickpi3.BrickPi3()
 color = EV3ColorSensor(3)
+SWEEP_ARM = Motor("C")
 wait_ready_sensors()
 
 
@@ -17,6 +18,7 @@ try:
 
         if key == "green":
             globals.COLOR = "Green"
+            SWEEP_ARM.set_power(0)
             break
 
         time.sleep(0.2)

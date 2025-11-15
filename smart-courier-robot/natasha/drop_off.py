@@ -88,7 +88,7 @@ def drop_package():
 def sweep(direction):
     try:
         print("sweeping")
-        SWEEP_ARM.set_limits(POWER_LIMIT, 30)
+        SWEEP_ARM.set_limits(POWER_LIMIT, 50)
         SWEEP_ARM.set_position_relative(120*direction)
         wait_for_motor(SWEEP_ARM)
     except IOError as error:
@@ -113,10 +113,12 @@ try:
     direction = 1
     while globals.SWEEPS < 6 and globals.COLOR != "Green":
         #sweep, mv fwd, add 1 to sweep
-        sweep(direction)
         move_dist_fwd(0.04, 60)
+        time.sleep(1)
+        sweep(direction)
         globals.SWEEPS += 1
         direction = direction * (-1)
+        time.sleep(1)
 
     
 
