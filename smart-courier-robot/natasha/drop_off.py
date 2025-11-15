@@ -1,6 +1,10 @@
-from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError
+from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
 import time
 import math
+import globals
+from threading import Thread
+import runpy
+import os
 
 MOTOR_POLL_DELAY = 0.05
 
@@ -14,7 +18,6 @@ ORIENT_TO_DEG = AXLE_LENGTH / WHEEL_RADIUS # Convert whole robot rotation to whe
 FMD_SPEED = 150         # (deg per sec) Moving forward speed
 TRN_SPEED = 180         # (deg per sec) Turning a corner speed
 
-
 POWER_LIMIT = 80        # Power limit = 80%
 SPEED_LIMIT = 720       # Speed limit = 720dps
 
@@ -24,6 +27,8 @@ LEFT_MOTOR = Motor("A")   # Left motor in Port A
 RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 DROP_MOTOR = Motor("B")  # Right motor in Port D
 SWEEP_ARM = Motor("C")
+
+
 
 def wait_for_motor(motor: Motor):
     while math.isclose(motor.get_speed(), 0):
@@ -45,6 +50,7 @@ def init_motor(motor: Motor):
 def move_dist_fwd(distance, speed): # meters, dps
     """Function to move forward by user-specified distance and speed"""
     try:
+        print("fwd")
         LEFT_MOTOR.set_dps(speed)
         RIGHT_MOTOR.set_dps(speed) # Set speeds of motors
         LEFT_MOTOR.set_limits(POWER_LIMIT, speed)
@@ -53,13 +59,13 @@ def move_dist_fwd(distance, speed): # meters, dps
         RIGHT_MOTOR.set_position_relative(int(distance * DIST_TO_DEG))
 
         wait_for_motor(RIGHT_MOTOR)
+        #wait_for_motor(LEFT_MOTOR)
     except IOError as error:
         print(error)
 
 
 def rotate(angle, speed):
     try:
-        print("rotating")
         LEFT_MOTOR.set_dps(speed)
         RIGHT_MOTOR.set_dps(speed)
         LEFT_MOTOR.set_limits(POWER_LIMIT, speed)   # Set speed
@@ -73,23 +79,48 @@ def rotate(angle, speed):
 def drop_package():
     try:
         DROP_MOTOR.set_limits(POWER_LIMIT, 70)
-        DROP_MOTOR.set_position_relative(97)
+        DROP_MOTOR.set_position_relative(90)
         wait_for_motor(DROP_MOTOR)
         print("dropped off")
+    except IOError as error:
+        print(error)
+
+def sweep(direction):
+    try:
+        print("sweeping")
+        SWEEP_ARM.set_limits(POWER_LIMIT, 30)
+        SWEEP_ARM.set_position_relative(120*direction)
+        wait_for_motor(SWEEP_ARM)
     except IOError as error:
         print(error)
 
 
 try:
     wait_ready_sensors() # Wait for sensors to initialize
-    print('Drop off module started')
+    print('Dropping off')
     init_motor(LEFT_MOTOR) # Initialize L Motor
     init_motor(RIGHT_MOTOR) # Initialize R Motor
     init_motor(DROP_MOTOR)
-    rotate(90,180)
+
+    #rotate(90, 180)
+
+    #start color polling thread here!
+    # Start the existing color_polling.py script in a daemon thread so we don't
+    # duplicate polling logic here. It runs its own loop and updates globals.COLOR.
+    color_script = os.path.join(os.path.dirname(__file__), "color_polling.py")
+    color_thread = Thread(target=lambda: runpy.run_path(color_script), daemon=True)
+    color_thread.start()
+    direction = 1
+    while globals.SWEEPS < 6 and globals.COLOR != "Green":
+        #sweep, mv fwd, add 1 to sweep
+        sweep(direction)
+        move_dist_fwd(0.04, 60)
+        globals.SWEEPS += 1
+        direction = direction * (-1)
+
     
-    drop_package()
-    print('finished')
+
+    #drop_package()
 
 except KeyboardInterrupt: # Abort program using ^C (Ctrl+C)
     BP.reset_all()
