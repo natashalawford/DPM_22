@@ -192,30 +192,27 @@ try:
         current_color = detect_color()
         room_entered = False
 
-        if current_color == "Red":
-            print("Red detected. Not entering room")
-            if room_entered:
-                room_entered = False
-                room_entered_time = None
-            LAST_COLOR = current_color
-            time.sleep(SENSOR_POLL_SLEEP)
-            continue
-
-        if (not room_entered) and current_color in ("Yellow", "Orange"):
-            if LAST_COLOR not in ("Yellow", "Orange"):
-                room_entered = True
-                room_entered_time = time.time()
-                print(f"Room detected. Total doors entered: {DOOR_COUNT + 1}")
-                DOOR_COUNT += 1
-                print("Continuing forward for 3 seconds")
-
-        LAST_COLOR = current_color
-                
-        if room_entered and room_entered_time is not None:
-            if time.time() - room_entered_time >= 3.0:
-                print("center of room, reached 3 seconds")
-                BP.reset_all()
-                break
+        if current_color == "Red": 
+            print("Red detected. Not entering room") 
+            continue 
+        if (not room_entered) and current_color in ("Yellow", "Orange"): 
+            if LAST_COLOR not in ("Yellow", "Orange"): 
+                room_entered = True 
+                print(f"Room detected. Total doors entered: {DOOR_COUNT + 1}") 
+                DOOR_COUNT += 1 
+                continue_start = time.time() 
+                #Right now in seconds, @natashalawford change this for distance!
+                print("Continuing forward for 3 seconds") 
+                while time.time() - continue_start < 3: 
+                    LEFT_MOTOR.set_dps(FORWARD_SPEED) 
+                    RIGHT_MOTOR.set_dps(FORWARD_SPEED) 
+                    current_color = detect_color() 
+                    if current_color == "Red": 
+                        print("Red detected. Not entering room")
+                        room_entered = False
+                        break 
+                    BP.reset_all() 
+                    break
         # small errors -> keep straight to avoid hunting
         if abs(error) <= DEADBAND:
             LEFT_MOTOR.set_dps(FORWARD_SPEED)
