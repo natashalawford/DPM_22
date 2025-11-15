@@ -1,4 +1,5 @@
 from utils.brick import BP, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
+from utils.sound import Sound
 import time
 import math
 import globals
@@ -31,6 +32,7 @@ SWEEP_ARM = Motor("C")
 # SWEEPING ARM CONSTANTS
 FWD_SWEEP_DIST = 0.04 # distance robot moves forward between each sweep (m)
 SWEEP_SPEED = 50 # Speed of sweeping arm
+SWEEPING_ANGLE = 130 # Angle sweeping arm moves each sweep (deg)
 
 
 def wait_for_motor(motor: Motor):
@@ -85,6 +87,8 @@ def drop_package():
         DROP_MOTOR.set_position_relative(90)
         wait_for_motor(DROP_MOTOR)
         print("dropped off")
+        # Play success sound :
+        Sound(duration=0.6, volume=80, pitch="C5").play().wait_done()
     except IOError as error:
         print(error)
 
@@ -92,7 +96,7 @@ def sweep(direction):
     try:
         print("sweeping")
         SWEEP_ARM.set_limits(POWER_LIMIT, SWEEP_SPEED)
-        SWEEP_ARM.set_position_relative(120*direction)
+        SWEEP_ARM.set_position_relative(SWEEPING_ANGLE * direction)
         wait_for_motor(SWEEP_ARM)
     except IOError as error:
         print(error)
@@ -122,8 +126,13 @@ try:
         time.sleep(1)
         sweep(direction)
         globals.SWEEPS += 1
-        direction = direction * (-1)
+        direction = direction * (-1) # switch direction of sweeping arm
         time.sleep(1)
+
+    # Drop off package if green was detected
+    if globals.COLOR == "Green":
+        drop_package()
+        globals.PACKAGES -= 1
 
     # Back out of office based on how many sweeps were completed:
     move_dist_fwd( (-FWD_SWEEP_DIST)*globals.SWEEPS, 60)
@@ -135,9 +144,6 @@ try:
     # Rotate back out *MORE LOGIC TO BE IMPLEMENTED HERE BASED ON
     # WHERE TO ROBOT IS AND IF IT NEEDS TO GO BACK TO MAIL ROOM
     rotate(-90, 180)
-    
-
-    #drop_package()
 
 except KeyboardInterrupt: # Abort program using ^C (Ctrl+C)
     BP.reset_all()
