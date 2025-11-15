@@ -190,6 +190,7 @@ try:
         print(error)
 
         current_color = detect_color()
+        room_entered = False
 
         if current_color == "Red":
             print("Red detected. Not entering room")
@@ -200,13 +201,23 @@ try:
                 room_entered = True
                 print(f"Room detected. Total doors entered: {DOOR_COUNT + 1}")
                 DOOR_COUNT += 1
+                continue_start = time.time()
+                print("Continuing forward for 2 seconds")
+                
+                while time.time() - continue_start < 3:
+                    LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+                    current_color = detect_color()
+                    if current_color == "Red":
+                        print("Red detected. Not entering room")
+                        break   
+                BP.reset_all()
                 break
-
             # small errors -> keep straight to avoid hunting
         if abs(error) <= DEADBAND:
             LEFT_MOTOR.set_dps(FORWARD_SPEED)
             RIGHT_MOTOR.set_dps(FORWARD_SPEED)
-            print("go straigt")
+            print("go straight")
         if error < -DEADBAND_ROOM:
             print("go right")
 
