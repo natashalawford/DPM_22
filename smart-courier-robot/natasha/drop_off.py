@@ -30,9 +30,10 @@ DROP_MOTOR = Motor("B")  # Right motor in Port D
 SWEEP_ARM = Motor("C")
 
 # SWEEPING ARM CONSTANTS
-FWD_SWEEP_DIST = 0.04 # distance robot moves forward between each sweep (m)
-SWEEP_SPEED = 50 # Speed of sweeping arm
-SWEEPING_ANGLE = 130 # Angle sweeping arm moves each sweep (deg)
+FWD_SWEEP_DIST = 0.02 # distance robot moves forward between each sweep (m)
+SWEEP_SPEED = 90 # Speed of sweeping arm
+SWEEPING_ANGLE = 110 # Angle sweeping arm moves each sweep (deg)
+FWD_SWEEP_SPEED = 120 # Speed the robot is moving between each sweep
 
 
 def wait_for_motor(motor: Motor):
@@ -104,14 +105,19 @@ def sweep(direction):
 
 try:
     wait_ready_sensors() # Wait for sensors to initialize
-    init_motor(LEFT_MOTOR) # Initialize L Motor
-    init_motor(RIGHT_MOTOR) # Initialize R Motor
+    #init_motor(LEFT_MOTOR) # Initialize L Motor
+    #init_motor(RIGHT_MOTOR) # Initialize R Motor
     init_motor(DROP_MOTOR)
 
     
     # turn 90 DEG into office
     rotate(90, 180)
     print('Turning into office')
+    SWEEP_ARM.set_limits(POWER_LIMIT, SWEEP_SPEED)
+    #Move arm slightly to fit into office
+    SWEEP_ARM.set_position_relative(32)
+    wait_for_motor(SWEEP_ARM)
+
 
 
     # Start the existing color_polling.py script in a daemon thread
@@ -120,14 +126,14 @@ try:
     color_thread = Thread(target=lambda: runpy.run_path(color_script), daemon=True)
     color_thread.start()
     direction = 1
-    while globals.SWEEPS < 6 and globals.COLOR != "Green":
+    while globals.SWEEPS < 10 and globals.COLOR != "Green":
         #sweep, mv fwd, add 1 to sweep
-        move_dist_fwd(FWD_SWEEP_DIST , 60)
-        time.sleep(1)
+        move_dist_fwd(FWD_SWEEP_DIST , FWD_SWEEP_SPEED)
+        time.sleep(0.1)
         sweep(direction)
         globals.SWEEPS += 1
         direction = direction * (-1) # switch direction of sweeping arm
-        time.sleep(1)
+        time.sleep(0.1)
 
     # Drop off package if green was detected
     if globals.COLOR == "Green":
@@ -135,7 +141,7 @@ try:
         globals.PACKAGES -= 1
 
     # Back out of office based on how many sweeps were completed:
-    move_dist_fwd( (-FWD_SWEEP_DIST)*globals.SWEEPS, 60)
+    move_dist_fwd( (-FWD_SWEEP_DIST)*globals.SWEEPS, 150)
 
     # Reset SWEEPS and COLOR for next drop off:
     globals.SWEEPS = 0
@@ -144,6 +150,8 @@ try:
     # Rotate back out *MORE LOGIC TO BE IMPLEMENTED HERE BASED ON
     # WHERE TO ROBOT IS AND IF IT NEEDS TO GO BACK TO MAIL ROOM
     rotate(-90, 180)
+    # Move arm back to 90 deg
+    SWEEP_ARM.set_position_relative(-32)
 
 except KeyboardInterrupt: # Abort program using ^C (Ctrl+C)
     BP.reset_all()
