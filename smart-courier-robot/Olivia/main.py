@@ -193,7 +193,8 @@ try:
         room_entered = False
 
         if current_color == "Red": 
-            print("Red detected. Not entering room") 
+            print("Red detected. Not entering room")
+            LAST_COLOR = current_color
             continue 
         if (not room_entered) and current_color in ("Yellow", "Orange"): 
             if LAST_COLOR not in ("Yellow", "Orange"): 
