@@ -28,6 +28,9 @@ RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 DROP_MOTOR = Motor("B")  # Right motor in Port D
 SWEEP_ARM = Motor("C")
 
+# SWEEPING ARM CONSTANTS
+FWD_SWEEP_DIST = 0.04 # distance robot moves forward between each sweep (m)
+SWEEP_SPEED = 50 # Speed of sweeping arm
 
 
 def wait_for_motor(motor: Motor):
@@ -88,7 +91,7 @@ def drop_package():
 def sweep(direction):
     try:
         print("sweeping")
-        SWEEP_ARM.set_limits(POWER_LIMIT, 50)
+        SWEEP_ARM.set_limits(POWER_LIMIT, SWEEP_SPEED)
         SWEEP_ARM.set_position_relative(120*direction)
         wait_for_motor(SWEEP_ARM)
     except IOError as error:
@@ -97,29 +100,41 @@ def sweep(direction):
 
 try:
     wait_ready_sensors() # Wait for sensors to initialize
-    print('Dropping off')
     init_motor(LEFT_MOTOR) # Initialize L Motor
     init_motor(RIGHT_MOTOR) # Initialize R Motor
     init_motor(DROP_MOTOR)
 
-    #rotate(90, 180)
+    
+    # turn 90 DEG into office
+    rotate(90, 180)
+    print('Turning into office')
 
-    #start color polling thread here!
-    # Start the existing color_polling.py script in a daemon thread so we don't
-    # duplicate polling logic here. It runs its own loop and updates globals.COLOR.
+
+    # Start the existing color_polling.py script in a daemon thread
+    # It runs its own loop and updates globals.COLOR.
     color_script = os.path.join(os.path.dirname(__file__), "color_polling.py")
     color_thread = Thread(target=lambda: runpy.run_path(color_script), daemon=True)
     color_thread.start()
     direction = 1
     while globals.SWEEPS < 6 and globals.COLOR != "Green":
         #sweep, mv fwd, add 1 to sweep
-        move_dist_fwd(0.04, 60)
+        move_dist_fwd(FWD_SWEEP_DIST , 60)
         time.sleep(1)
         sweep(direction)
         globals.SWEEPS += 1
         direction = direction * (-1)
         time.sleep(1)
 
+    # Back out of office based on how many sweeps were completed:
+    move_dist_fwd( (-FWD_SWEEP_DIST)*globals.SWEEPS, 60)
+
+    # Reset SWEEPS and COLOR for next drop off:
+    globals.SWEEPS = 0
+    globals.COLOR = ""
+
+    # Rotate back out *MORE LOGIC TO BE IMPLEMENTED HERE BASED ON
+    # WHERE TO ROBOT IS AND IF IT NEEDS TO GO BACK TO MAIL ROOM
+    rotate(-90, 180)
     
 
     #drop_package()
