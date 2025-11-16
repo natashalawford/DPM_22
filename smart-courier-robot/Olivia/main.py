@@ -14,6 +14,10 @@ POWER_LIMIT = 80
 MOTOR_POLL_DELAY = 0.05
 TURNING = "neutral"
 
+# LINEAR MOTION
+DIST_TO_DEG = 360 / (2 * math.pi * WHEEL_RADIUS)  # deg per meter
+ROOM_FORWARD_DIST = 0.25  # m forward after detecting door
+
 # State for detecting Yellow -> Green transitions
 LAST_COLOR = None
 DOOR_COUNT = 0
@@ -203,16 +207,19 @@ try:
                 DOOR_COUNT += 1 
                 continue_start = time.time() 
                 #Right now in seconds, @natashalawford change this for distance!
-                print("Continuing forward for 3 seconds") 
+                print("Continuing forward for {ROOM_FORWARD_DIST} m (~{forward_deg} deg).")
                 while time.time() - continue_start < 3: 
                     LEFT_MOTOR.set_dps(FORWARD_SPEED) 
                     RIGHT_MOTOR.set_dps(FORWARD_SPEED) 
+                    LEFT_MOTOR.set_position_relative(forward_deg)
+                    RIGHT_MOTOR.set_position_relative(forward_deg)
                     current_color = detect_color() 
                     if current_color == "Red": 
                         print("Red detected. Not entering room")
                         room_entered = False
                         break
-                    while (time.time() -continue_start) > 3 & room_entered == True:
+                    if math.isclose(LEFT_MOTOR.get_speed(), 0, abs_tol=1.0) and \
+                        math.isclose(RIGHT_MOTOR.get_speed(), 0, abs_tol=1.0):    
                         LEFT_MOTOR.set_dps(0) 
                         RIGHT_MOTOR.set_dps(0)
         # small errors -> keep straight to avoid hunting
