@@ -205,14 +205,17 @@ try:
                 room_entered = True 
                 print(f"Room detected. Total doors entered: {DOOR_COUNT + 1}") 
                 DOOR_COUNT += 1 
-                continue_start = time.time() 
                 #Right now in seconds, @natashalawford change this for distance!
+                forward_deg = int(ROOM_FORWARD_DIST * DIST_TO_DEG)
                 print("Continuing forward for {ROOM_FORWARD_DIST} m (~{forward_deg} deg).")
-                while time.time() - continue_start < 3: 
-                    LEFT_MOTOR.set_dps(FORWARD_SPEED) 
-                    RIGHT_MOTOR.set_dps(FORWARD_SPEED) 
-                    LEFT_MOTOR.set_position_relative(forward_deg)
-                    RIGHT_MOTOR.set_position_relative(forward_deg)
+                
+                LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+                LEFT_MOTOR.set_position_relative(forward_deg)
+                RIGHT_MOTOR.set_position_relative(forward_deg)
+                
+                while True: 
+                    stop_robot()
                     current_color = detect_color() 
                     if current_color == "Red": 
                         print("Red detected. Not entering room")
