@@ -195,7 +195,7 @@ try:
         if current_color == "Red": 
             print("Red detected. Not entering room")
             LAST_COLOR = current_color
-            continue 
+            break
         if (not room_entered) and current_color in ("Yellow", "Orange"): 
             if LAST_COLOR not in ("Yellow", "Orange"): 
                 room_entered = True 
@@ -211,9 +211,10 @@ try:
                     if current_color == "Red": 
                         print("Red detected. Not entering room")
                         room_entered = False
-                        break 
-                    BP.reset_all() 
-                    break
+                        break
+                    while (time.time() -continue_start) > 3 & room_entered == True:
+                        LEFT_MOTOR.set_dps(0) 
+                        RIGHT_MOTOR.set_dps(0)
         # small errors -> keep straight to avoid hunting
         if abs(error) <= DEADBAND:
             LEFT_MOTOR.set_dps(FORWARD_SPEED)
