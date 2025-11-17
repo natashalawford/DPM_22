@@ -1,6 +1,7 @@
 from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
 import time
 import math
+import subprocess 
 
 #DRIVING
 FORWARD_SPEED = 100        # speed constant = 30% power
@@ -205,7 +206,6 @@ try:
                 room_entered = True 
                 print(f"Room detected. Total doors entered: {DOOR_COUNT + 1}") 
                 DOOR_COUNT += 1 
-                #Right now in seconds, @natashalawford change this for distance!
                 forward_deg = int(ROOM_FORWARD_DIST * DIST_TO_DEG)
                 print("Continuing forward for {ROOM_FORWARD_DIST} m (~{forward_deg} deg).")
                 
@@ -225,6 +225,8 @@ try:
                         math.isclose(RIGHT_MOTOR.get_speed(), 0, abs_tol=1.0):    
                         LEFT_MOTOR.set_dps(0) 
                         RIGHT_MOTOR.set_dps(0)
+                        subprocess.run(["python3", "drop_off.py"])
+                        break
         # small errors -> keep straight to avoid hunting
         if abs(error) <= DEADBAND:
             LEFT_MOTOR.set_dps(FORWARD_SPEED)
