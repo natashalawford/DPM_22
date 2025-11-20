@@ -28,6 +28,9 @@ RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 color = EV3ColorSensor(3)
 COLOR_SENSOR_DATA_FILE="./color_data.csv"
 
+def clamp(v, lo, hi):
+        return max(lo, min(hi, v))
+
 def stop_robot():
     try:
         if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
@@ -83,7 +86,67 @@ try:
         # use the more robust RGB-based detector (detect_color) and normalize to lowercase
         detected_color = color.get_color_name()
         print(f"Detected (normalized): {detected_color}")
+        dist = us.get_value()
+       
+        # controller params (tune these on the robot)
+        Kp = 20.0         # proportional gain (dps per unit distance)
+        DEADBAND_WALL = 0.55
+        DEADBAND = 0.3
+        DEADBAND_ROOM = 0.1 # meters (or same units as your sensor)
 
+        error = WALL_DST - dist
+        print(dist)
+        print(error)
+            # small errors -> keep straight to avoid hunting
+        if abs(error) <= DEADBAND:
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+            print("go straigt")
+        if error < -DEADBAND_ROOM:
+            print("go right")
+
+                # compute wheel speeds
+            left_speed = FORWARD_SPEED + (Kp * error)
+            right_speed = FORWARD_SPEED - (Kp * error)
+
+                # keep speeds within safe range
+            max_speed = POWER_LIMIT
+            left_speed = clamp(left_speed, -max_speed, max_speed)
+            right_speed = clamp(right_speed, -max_speed, max_speed)
+
+                # set limits (power limit, dps limit)
+            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+        elif error > DEADBAND_WALL:
+            print("go left")
+                    
+
+                # compute wheel speeds
+            left_speed = FORWARD_SPEED + (Kp * error)
+            right_speed = FORWARD_SPEED - (Kp * error)
+
+                # keep speeds within safe range
+            max_speed = POWER_LIMIT
+            left_speed = clamp(left_speed, -max_speed, max_speed)
+            right_speed = clamp(right_speed, -max_speed, max_speed)
+
+                # set limits (power limit, dps limit)
+            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
+
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
+
+
+        if dist is None:
+            # sensor failed this cycle; don't change motors and keep polling
+            time.sleep(SENSOR_POLL_SLEEP)
+            continue
         # Count door when we see yellow transitioning from a different color
         if detected_color == "yellow" and LAST_COLOR != "yellow":
             DOOR_COUNT += 1
