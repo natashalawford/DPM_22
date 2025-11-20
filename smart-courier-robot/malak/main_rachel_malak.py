@@ -203,7 +203,7 @@ try:
             LAST_COLOR = detected_color
 
         # Only rotate if we reliably detect green and are at the target door count
-        if detected_color == "green" and (DOOR_COUNT == 2 or DOOR_COUNT == 4) and not just_rotated:
+        if detected_color == "green" and (DOOR_COUNT == 2 or DOOR_COUNT == 3) and not just_rotated:
             # require sustained green reading to avoid false positives
             if is_color_sustained("green", samples=50):
                 print("At destination, stopping and rotating")
