@@ -27,8 +27,8 @@ DEADBAND = 0.3
 
 #PORTS
 T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
-LEFT_MOTOR = Motor("D")   # Left motor in Port A
-RIGHT_MOTOR = Motor("A")  # Right motor in Port D
+LEFT_MOTOR = Motor("D")   # Left motor in Port D
+RIGHT_MOTOR = Motor("A")  # Right motor in Port A
 
 
 def stop_robot():
