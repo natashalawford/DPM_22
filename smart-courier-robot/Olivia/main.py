@@ -5,6 +5,8 @@ import subprocess
 from utils.sound import Sound
 from threading import Thread, Event
 import room_detection
+import globals
+
 
 # DRIVING
 FORWARD_SPEED = 130
@@ -67,6 +69,9 @@ def rotate(angle, speed):
     except IOError as error:
         print(error)
 
+def is_mission_complete():
+    return (PACKAGES == 0) and (DOOR_SCANS in MAILROOM_DOORS)
+
 
 try:
     wait_ready_sensors()
@@ -86,7 +91,7 @@ try:
 
     # State to track the 0.14 m window
     room_window_active = False
-    room_window_start_pos = None  # encoder position when Yellow/Orange first detected
+    room_window_start_pos = None # encoder position when Yellow/Orange first detected
 
     LEFT_MOTOR.set_dps(FORWARD_SPEED)
     RIGHT_MOTOR.set_dps(FORWARD_SPEED)
@@ -95,7 +100,6 @@ try:
     DEADBAND = 0.3
     DEADBAND_WALL = 0.55
     DEADBAND_ROOM = 0.1
-
 
 
     #MAIN NAVIGATION LOOP
@@ -122,7 +126,10 @@ try:
             room_window_active = True
             room_window_start_pos = LEFT_MOTOR.get_position()
             room_detected_false.clear()
-            print("[main] Room window started: tracking 0.14 m while wall-following continues.")
+
+            # Count this door scan
+            DOOR_SCANS += 1
+            print(f"[main] Room window started at door #{DOOR_SCANS}: tracking 0.14 m while wall-following continues.")
 
         # If we are in the 0.14 m window
         if room_window_active:
@@ -157,6 +164,19 @@ try:
 
                 snd = Sound(duration=0.6, volume=80, pitch="C5")
                 snd.play().wait_done()
+
+                # Update package count, one package delivered in this room
+                global PACKAGES
+                PACKAGES = max(PACKAGES - 1, 0)
+                print(f"[main] Packages remaining: {PACKAGES}")
+
+                # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
+                if is_mission_complete():
+                    print("[main] Mission complete! Mail room reached.")
+                    #  HERE WE WOULD RUN THE MISSION COMPLETION SCRIPT
+                    BP.reset_all()
+                    break   # end program
+
 
                 # Restart sensors and room detection/ wall navigation
                 wait_ready_sensors()

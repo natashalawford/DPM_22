@@ -5,3 +5,4 @@ DOOR_SCANS = 0
 # FOR SWEEPING ARM DROP OFF SCANNING:
 SWEEPS = 0
 COLOR = ""
+MAILROOM_DOORS = {2, 3, 4} # possible mail room positions
