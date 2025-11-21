@@ -1,10 +1,14 @@
 from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
 import time
 import math
-import subprocess 
+import subprocess
+from utils.sound import Sound
+#from threading import Thread
+#import runpy
+#import os
 
 #DRIVING
-FORWARD_SPEED = 100        # speed constant = 30% power
+FORWARD_SPEED = 130        # speed constant = 30% power
 SENSOR_POLL_SLEEP = 0.05  # Polling rate = 50 msec
 
 #TURNING
@@ -17,7 +21,7 @@ TURNING = "neutral"
 
 # LINEAR MOTION
 DIST_TO_DEG = 360 / (2 * math.pi * WHEEL_RADIUS)  # deg per meter
-ROOM_FORWARD_DIST = 0.25  # m forward after detecting door
+ROOM_FORWARD_DIST = 0.14  # m forward after detecting door
 
 # State for detecting Yellow -> Green transitions
 LAST_COLOR = None
@@ -106,11 +110,12 @@ def detect_color():
         
         # Define color ranges (R_min, R_max, G_min, G_max, B_min, B_max)
         color_ranges = {
-            "Black": (15, 40, 11, 33, 8, 19),
-            "Green": (90, 102, 120, 128, 16, 22),
-            "Red": (122, 132, 11, 18, 7, 13),
-            "Orange": (145, 205, 56, 77, 9, 16),
-            "Yellow": (142, 242, 101, 165, 13, 24)
+            "Black": (0, 60, 0, 60, 0, 60),
+            "Green": (80, 140, 100, 160, 9, 40),
+            "Red": (100, 200, 7, 25, 7, 20),
+            "Orange": (120, 300, 40, 95, 5, 20),
+            "Yellow": (142, 400, 101, 300, 13, 30),
+            "White": (160, 400, 140, 400, 110, 400)
         }
         
         detected_color = "Unknown"
@@ -206,6 +211,7 @@ try:
                 room_entered = True 
                 print(f"Room detected. Total doors entered: {DOOR_COUNT + 1}") 
                 DOOR_COUNT += 1 
+                #Right now in seconds, @natashalawford change this for distance!
                 forward_deg = int(ROOM_FORWARD_DIST * DIST_TO_DEG)
                 print("Continuing forward for {ROOM_FORWARD_DIST} m (~{forward_deg} deg).")
                 
@@ -226,6 +232,9 @@ try:
                         LEFT_MOTOR.set_dps(0) 
                         RIGHT_MOTOR.set_dps(0)
                         subprocess.run(["python3", "drop_off.py"])
+                        snd = Sound(duration=0.6, volume=80, pitch="C5")
+                        snd.play().wait_done()
+                        wait_ready_sensors()
                         break
         # small errors -> keep straight to avoid hunting
         if abs(error) <= DEADBAND:
