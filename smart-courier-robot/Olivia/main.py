@@ -187,7 +187,7 @@ try:
 
                 # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
                 if is_mission_complete():
-                    print("[main] Mission complete! Mail room reached.")
+                    print("[main] Mission complete! Go to mail room.")
                     #  HERE WE WOULD RUN THE MISSION COMPLETION SCRIPT
                     BP.reset_all()
                     break   # end program
