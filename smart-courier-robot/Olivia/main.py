@@ -70,7 +70,22 @@ def rotate(angle, speed):
         print(error)
 
 def is_mission_complete():
-    return (PACKAGES == 0) and (DOOR_SCANS in MAILROOM_DOORS)
+    return (PACKAGES == 0) and DOOR_SCANS
+
+def reset_all_sensors():
+    
+    global us, T_SENSOR
+
+    print("[main] Resetting sensors...")
+
+    BP.reset_all()
+
+    us = EV3UltrasonicSensor(1)
+    T_SENSOR = TouchSensor(2)
+
+    wait_ready_sensors()
+
+    print("[main] Sensors reinitialized successfully.")
 
 
 try:
@@ -177,9 +192,7 @@ try:
                     BP.reset_all()
                     break   # end program
 
-
-                # Restart sensors and room detection/ wall navigation
-                wait_ready_sensors()
+                reset_all_sensors()
 
                 # Reset room window state
                 room_window_active = False
