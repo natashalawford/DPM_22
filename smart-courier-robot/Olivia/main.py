@@ -197,6 +197,8 @@ def reset_all_sensors():
 
     print("[main] Sensors reinitialized successfully.")
 
+
+
 def main():
     try:
         wait_ready_sensors()
@@ -219,6 +221,8 @@ def main():
         # State to track the 0.14 m window
         room_window_active = False
         room_window_start_pos = None # encoder position when Yellow/Orange first detected
+        stop_room_detection = False
+        stop_room_detection_start_pos = None
 
 
         while True:
@@ -237,7 +241,7 @@ def main():
             # 1) Handle room detection events from the thread
 
             # If we just detected a doorway and no window is active yet
-            if room_detected.is_set() and not room_window_active:
+            if room_detected.is_set() and not room_window_active and not stop_room_detection:
                 room_window_active = True
                 room_window_start_pos = LEFT_MOTOR.get_position()
                 room_detected_false.clear()
@@ -258,6 +262,8 @@ def main():
                 if room_detected_false.is_set():
                     print("[main] Room window cancelled. Red detected.")
                     room_window_active = False
+                    stop_room_detection = True
+                    stop_room_detection_start_pos = LEFT_MOTOR.get_position()
                     room_detected.clear()
                     room_detected_false.clear()
                     # continue normal navigation
@@ -316,6 +322,20 @@ def main():
                     RIGHT_MOTOR.set_dps(FORWARD_SPEED)
 
                     continue
+
+            if stop_room_detection:
+                current_pos = LEFT_MOTOR.get_position()
+                delta_deg = abs(current_pos - stop_room_detection_start_pos)
+                dist_travelled = delta_deg / DIST_TO_DEG
+                print(f"[main] Stop-room-detection distance: {dist_travelled:.3f} m")
+
+                if dist_travelled >= ROOM_FORWARD_DIST:
+                    print("[main] 0.14 m reached — room detection re-enabled.")
+                    stop_room_detection = False
+                    stop_room_detection_start_pos = None
+                    room_detected.clear()
+                    room_detected_false.clear()
+
 
             time.sleep(SENSOR_POLL_SLEEP)
 
