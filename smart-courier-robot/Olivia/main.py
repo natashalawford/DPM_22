@@ -253,6 +253,7 @@ def main():
 
             # If we just detected a doorway and no window is active yet
             if room_detected.is_set() and not room_window_active and not stop_room_detection and not just_rotated:
+                stop_robot()
                 room_window_active = True
                 room_window_start_pos = LEFT_MOTOR.get_position()
                 room_detected_false.clear()
@@ -264,6 +265,7 @@ def main():
             # If we are in the 0.14 m window
             if room_window_active and not just_rotated:
                 # Check how far we've travelled since the window started
+                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - room_window_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
@@ -340,6 +342,7 @@ def main():
                     continue
 
             if stop_room_detection:
+                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - stop_room_detection_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
@@ -353,6 +356,7 @@ def main():
                     room_detected_false.clear()
 
             if just_rotated:
+                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - stop_room_detection_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
@@ -371,6 +375,7 @@ def main():
             turn_start_postion = LEFT_MOTOR.get_position()
             if detected_color == "white" and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
             # require sustained white reading to avoid false positives
+                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - turn_start_postion)
                 dist_travelled = delta_deg / DIST_TO_DEG
