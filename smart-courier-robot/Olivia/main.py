@@ -356,6 +356,7 @@ def main():
                     room_detected_false.clear()
 
             if just_rotated:
+                print("just rotated, going straight 40 cm w/o door scanning")
                 stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - stop_room_detection_start_pos)
@@ -373,23 +374,35 @@ def main():
             
             detected_color = detect_color()
             turn_start_postion = LEFT_MOTOR.get_position()
-            if detected_color == "white" and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
+            turn_start_pos = turn_start_postion / DIST_TO_DEG
+            if (detected_color == "White") and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
             # require sustained white reading to avoid false positives
+                print("white detected, preparing before 90 deg turn")
                 stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - turn_start_postion)
                 dist_travelled = delta_deg / DIST_TO_DEG
-                print(f"[main] Start white distance before turn: {dist_travelled:.3f} m")
+                print(f"[main] Start white distance before turn: {turn_start_pos:.3f} m")
                 while dist_travelled < 0.12:
-                   LEFT_MOTOR.set_dps(FORWARD_SPEED)
-                   RIGHT_MOTOR.set_dps(FORWARD_SPEED)     
+                    print (f"[main] Distance travelled from white start pos: {dist_travelled:.3f} m")
+                    LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+                    current_pos = LEFT_MOTOR.get_position()
+                    delta_deg = abs(current_pos - turn_start_postion)
+                    dist_travelled = delta_deg / DIST_TO_DEG
+                    if dist_travelled >= 0.12:
+                        print("[main] 0.12 m reached, initiating turn at corner.")
+                        rotate(90, 180)
+                        # small pause to let motors settle and to move off the patch
+                        time.sleep(0.2)
+                        just_rotated = True
                 if dist_travelled >= 0.12:
                     print("[main] 0.12 m reached, initiating turn at corner.")
                     rotate(90, 180)
                     # small pause to let motors settle and to move off the patch
                     time.sleep(0.2)
                     just_rotated = True
-                    continue
+                continue
 
             time.sleep(SENSOR_POLL_SLEEP)
 
