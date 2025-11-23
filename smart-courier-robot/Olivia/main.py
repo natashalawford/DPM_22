@@ -358,12 +358,12 @@ def main():
                 dist_travelled = delta_deg / DIST_TO_DEG
                 print(f"[main] Stop room detection distance: {dist_travelled:.3f} m")
 
-                if dist_travelled >= 0.30:
+                if dist_travelled >= 0.40:
                     print("[main] 0.30 m reached, after turn corner, room detection re-enabled.")
                     just_rotated = False
                     stop_room_detection_start_pos = None
-                    room_detected.clear()
-                    room_detected_false.clear()
+                    #room_detected.clear()
+                    #room_detected_false.clear()
 
             # 2) Handle turning corners
             
