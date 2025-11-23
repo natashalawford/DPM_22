@@ -182,7 +182,7 @@ def is_mission_complete():
 
 def reset_all_sensors():
     
-    global us, T_SENSOR
+    global us, T_SENSOR, color, gyro
 
     print("[main] Resetting sensors...")
 
@@ -190,6 +190,8 @@ def reset_all_sensors():
 
     us = EV3UltrasonicSensor(1)
     T_SENSOR = TouchSensor(2)
+    color = EV3ColorSensor(3)
+    gyro = EV3GyroSensor(4) 
 
     wait_ready_sensors()
 
