@@ -197,6 +197,16 @@ def reset_all_sensors():
 
     print("[main] Sensors reinitialized successfully.")
 
+def is_color_sustained(target, samples=3, delay=SENSOR_POLL_SLEEP):
+    """Return True if `target` is read in the majority of `samples`."""
+    matches = 0
+    for _ in range(samples):
+        c = color.get_color_name()
+        if c == target.lower():
+            matches += 1
+        time.sleep(delay)
+    return matches >= (samples // 2) + 1
+
 
 
 def main():
@@ -341,6 +351,17 @@ def main():
                     room_detected.clear()
                     room_detected_false.clear()
 
+            # 2) Handle turning corners
+            detected_color = detect_color()
+            if detected_color == "white" and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
+            # require sustained white reading to avoid false positives
+                if is_color_sustained("white", samples=50):
+                    print("At destination, stopping and rotating")
+                    rotate(90, 180)
+                    # small pause to let motors settle and to move off the patch
+                    time.sleep(0.2)
+                    just_rotated = True
+                    continue
 
             time.sleep(SENSOR_POLL_SLEEP)
 
