@@ -316,6 +316,10 @@ def main():
                     )
                     room_thread.start()
                     print("[main] Room detection thread restarted after drop_off.")
+                    
+                    stop_room_detection = True
+                    stop_room_detection_start_pos = LEFT_MOTOR.get_position()
+                    print("[main] stop_room_detection active after drop_off, ignoring doors for 0.14 m.")
 
                     # Resume wall-following
                     LEFT_MOTOR.set_dps(FORWARD_SPEED)
@@ -327,10 +331,10 @@ def main():
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - stop_room_detection_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
-                print(f"[main] Stop-room-detection distance: {dist_travelled:.3f} m")
+                print(f"[main] Stop room detection distance: {dist_travelled:.3f} m")
 
                 if dist_travelled >= ROOM_FORWARD_DIST:
-                    print("[main] 0.14 m reached — room detection re-enabled.")
+                    print("[main] 0.14 m reached, room detection re-enabled.")
                     stop_room_detection = False
                     stop_room_detection_start_pos = None
                     room_detected.clear()
