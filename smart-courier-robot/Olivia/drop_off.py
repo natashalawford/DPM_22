@@ -31,7 +31,7 @@ SWEEP_ARM = Motor("C")
 
 # SWEEPING ARM CONSTANTS
 FWD_SWEEP_DIST = 0.02 # distance robot moves forward between each sweep (m)
-SWEEP_SPEED = 50 # Speed of sweeping arm
+SWEEP_SPEED = 90 # Speed of sweeping arm
 SWEEPING_ANGLE = 110 # Angle sweeping arm moves each sweep (deg)
 FWD_SWEEP_SPEED = 120 # Speed the robot is moving between each sweep
 
@@ -41,6 +41,8 @@ def wait_for_motor(motor: Motor):
         time.sleep(MOTOR_POLL_DELAY)
     while not math.isclose(motor.get_speed(), 0):
         time.sleep(MOTOR_POLL_DELAY)
+
+
 
 
 def init_motor(motor: Motor):
@@ -105,8 +107,6 @@ def sweep(direction):
 
 try:
     wait_ready_sensors() # Wait for sensors to initialize
-    #init_motor(LEFT_MOTOR) # Initialize L Motor
-    #init_motor(RIGHT_MOTOR) # Initialize R Motor
     init_motor(DROP_MOTOR)
 
     
@@ -155,3 +155,4 @@ try:
 
 except KeyboardInterrupt: # Abort program using ^C (Ctrl+C)
     BP.reset_all()
+

@@ -1,4 +1,4 @@
-from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError
+from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor, EV3GyroSensor
 import time
 import math
 import subprocess
@@ -8,16 +8,17 @@ import room_detection
 import globals
 
 
-# DRIVING
-FORWARD_SPEED = 130
+#DRIVING
+FORWARD_SPEED = 100        # speed constant = 30% power
 SENSOR_POLL_SLEEP = 0.05
 
-# TURNING
+#TURNING
 WHEEL_RADIUS = 0.022
 AXEL_LENGTH = 0.078
 ORIENTTODEG = AXEL_LENGTH / WHEEL_RADIUS
-POWER_LIMIT = 80
+POWER_LIMIT = 110
 MOTOR_POLL_DELAY = 0.05
+TURNING = "neutral"
 
 # LINEAR MOTION
 DIST_TO_DEG = 360 / (2 * math.pi * WHEEL_RADIUS)  # deg per meter
@@ -25,11 +26,19 @@ ROOM_FORWARD_DIST = 0.14  # m forward after detecting door
 
 WALL_DST = 7.0
 
-# SENSORS / MOTORS
-us = EV3UltrasonicSensor(1)  # Ultrasonic sensor in Port 1
-T_SENSOR = TouchSensor(2)    # Touch Sensor in Port S2
-LEFT_MOTOR = Motor("A")      # Left motor in Port A/ actually is D
-RIGHT_MOTOR = Motor("D")     # Right motor in Port D/ actually is A
+
+
+#PORTS
+T_SENSOR = TouchSensor(2) # Touch Sensor in Port S2
+LEFT_MOTOR = Motor("D")   # Left motor in Port A
+RIGHT_MOTOR = Motor("A")  # Right motor in Port D
+color = EV3ColorSensor(3) # Color in port 3
+gyro = EV3GyroSensor(4)   # Gyro in port 4
+us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
+
+#PATH CORRECTION
+Kp = 10.0
+DEADBAND = 0.1
 
 
 def stop_robot():
@@ -41,18 +50,73 @@ def stop_robot():
         time.sleep(SENSOR_POLL_SLEEP)
     except SensorError as error:
         print(error)
-
+def detect_color():
+    """Detect color based on RGB value ranges"""
+    try:
+        r, g, b = color.get_rgb()
+        print(f"RGB: {r}, {g}, {b}")
+        
+        # Define color ranges (R_min, R_max, G_min, G_max, B_min, B_max)
+        color_ranges = {
+            "Black": (0, 60, 0, 60, 0, 60),
+            "Green": (80, 140, 100, 160, 9, 40),
+            "Red": (100, 200, 7, 25, 7, 20),
+            "Orange": (120, 300, 40, 95, 5, 20),
+            "Yellow": (142, 400, 101, 300, 13, 30),
+            "White": (160, 400, 140, 400, 110, 400)
+        }
+        
+        detected_color = "Unknown"
+        
+        # Check each color range in order of specificity
+        if (color_ranges["Black"][0] <= r <= color_ranges["Black"][1] and
+            color_ranges["Black"][2] <= g <= color_ranges["Black"][3] and
+            color_ranges["Black"][4] <= b <= color_ranges["Black"][5]):
+            detected_color = "Black"
+            
+        elif (color_ranges["Green"][0] <= r <= color_ranges["Green"][1] and
+              color_ranges["Green"][2] <= g <= color_ranges["Green"][3] and
+              color_ranges["Green"][4] <= b <= color_ranges["Green"][5]):
+            detected_color = "Green"
+            
+        elif (color_ranges["Red"][0] <= r <= color_ranges["Red"][1] and
+              color_ranges["Red"][2] <= g <= color_ranges["Red"][3] and
+              color_ranges["Red"][4] <= b <= color_ranges["Red"][5]):
+            detected_color = "Red"
+            
+        elif (color_ranges["Orange"][0] <= r <= color_ranges["Orange"][1] and
+              color_ranges["Orange"][2] <= g <= color_ranges["Orange"][3] and
+              color_ranges["Orange"][4] <= b <= color_ranges["Orange"][5]):
+            detected_color = "Orange"
+            
+        elif (color_ranges["Yellow"][0] <= r <= color_ranges["Yellow"][1] and
+              color_ranges["Yellow"][2] <= g <= color_ranges["Yellow"][3] and
+              color_ranges["Yellow"][4] <= b <= color_ranges["Yellow"][5]):
+            detected_color = "Yellow"
+            
+        elif (color_ranges["White"][0] <= r <= color_ranges["White"][1] and
+              color_ranges["White"][2] <= g <= color_ranges["White"][3] and
+              color_ranges["White"][4] <= b <= color_ranges["White"][5]):
+            detected_color = "White"
+        
+        print(f"Detected color: {detected_color}")
+        return detected_color
+        
+    except SensorError as error:
+        print(f"Color sensor error: {error}")
+        return "Unknown"
+    except BaseException as error:
+        print(f"Unexpected error in detect_color: {error}")
+        return "Unknown"
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
 
 def wait_for_motor(motor: Motor):
-    # Wait until motor starts moving
-    while math.isclose(motor.get_speed(), 0, abs_tol=1.0):
+    while math.isclose(motor.get_speed(), 0):
         time.sleep(MOTOR_POLL_DELAY)
-    # Then wait until it stops again
-    while not math.isclose(motor.get_speed(), 0, abs_tol=1.0):
+    while not math.isclose(motor.get_speed(), 0):
         time.sleep(MOTOR_POLL_DELAY)
 
 
@@ -68,9 +132,53 @@ def rotate(angle, speed):
         print("i wanna rotate")
     except IOError as error:
         print(error)
+        
+def path_correction(dist, error):
+    # small errors -> keep straight to avoid hunting
+        if abs(error) <= DEADBAND:
+            LEFT_MOTOR.set_dps(FORWARD_SPEED)
+            print(f"left speed: {FORWARD_SPEED}")
+            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+            print(f"right speed: {FORWARD_SPEED}")
+            print("go straight")
+            return
+            
+        if error < -DEADBAND:
+            print("go right")
+            # compute wheel speeds
+            left_speed = FORWARD_SPEED - (Kp * error)
+            right_speed = FORWARD_SPEED + (Kp * error)
+            
+            # keep speeds within safe range
+            left_speed = clamp(left_speed, -POWER_LIMIT, POWER_LIMIT)
+            print(f"left speed: {left_speed}")
+            right_speed = clamp(right_speed, -POWER_LIMIT, POWER_LIMIT)
+            print(f"right speed: {right_speed}")
+    
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
+            return
+            
+        elif error > DEADBAND:
+            print("go left")
+
+            # compute wheel speeds
+            left_speed = FORWARD_SPEED - (Kp * error)
+            right_speed = FORWARD_SPEED + (Kp * error)
+
+            # keep speeds within safe range
+       
+            left_speed = clamp(left_speed, -POWER_LIMIT, POWER_LIMIT)
+            print(f"left speed: {left_speed}")
+            right_speed = clamp(right_speed, -POWER_LIMIT, POWER_LIMIT)
+            print(f"right speed: {right_speed}")
+
+            LEFT_MOTOR.set_dps(left_speed)
+            RIGHT_MOTOR.set_dps(right_speed)
+            return
 
 def is_mission_complete():
-    return (PACKAGES == 0) and DOOR_SCANS
+    return (globals.PACKAGES == 0) and globals.DOOR_SCANS
 
 def reset_all_sensors():
     
@@ -87,171 +195,131 @@ def reset_all_sensors():
 
     print("[main] Sensors reinitialized successfully.")
 
+def main():
+    try:
+        wait_ready_sensors()
+        angle = gyro.get_abs_measure()
+        #print(f"gyro angle: {angle}")
 
-try:
-    wait_ready_sensors()
+        # THREADING SETUP FOR ROOM DETECTION
+        stop_detection = Event()
+        room_detected = Event()
+        room_detected_false = Event()
 
-    # THREADING SETUP FOR ROOM DETECTION
-    stop_detection = Event()
-    room_detected = Event()
-    room_detected_false = Event()
+        room_thread = Thread(
+            target=room_detection.room_detection_loop,
+            args=(stop_detection, room_detected, room_detected_false),
+            daemon=True,
+        )
+        room_thread.start()
+        print("[main] Room detection thread started.")
 
-    room_thread = Thread(
-        target=room_detection.room_detection_loop,
-        args=(stop_detection, room_detected, room_detected_false),
-        daemon=True,
-    )
-    room_thread.start()
-    print("[main] Room detection thread started.")
-
-    # State to track the 0.14 m window
-    room_window_active = False
-    room_window_start_pos = None # encoder position when Yellow/Orange first detected
-
-    LEFT_MOTOR.set_dps(FORWARD_SPEED)
-    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
-
-    Kp = 10.0
-    DEADBAND = 0.3
-    DEADBAND_WALL = 0.55
-    DEADBAND_ROOM = 0.1
+        # State to track the 0.14 m window
+        room_window_active = False
+        room_window_start_pos = None # encoder position when Yellow/Orange first detected
 
 
-    #MAIN NAVIGATION LOOP
-    LEFT_MOTOR.set_dps(FORWARD_SPEED)
-    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+        while True:
+            stop_robot()
 
-    Kp = 10.0
-    DEADBAND = 0.3
-    DEADBAND_WALL = 0.55
-    DEADBAND_ROOM = 0.1
+            print(f"Door count: {globals.DOOR_SCANS}")
+            # Gyroscope
+            new_angle = gyro.get_abs_measure()
+            #print(f"gyro angle: {new_angle}")
+            
+            # Path correction
+            dist = us.get_value()
+            error = WALL_DST - dist
+            path_correction(dist, error)
 
-    while True:
-        stop_robot()
+            # 1) Handle room detection events from the thread
 
-        dist = us.get_value()
-        if dist is None:
-            time.sleep(SENSOR_POLL_SLEEP)
-            continue
-
-        # 1) Handle room detection events from the thread
-
-        # If we just detected a doorway and no window is active yet
-        if room_detected.is_set() and not room_window_active:
-            room_window_active = True
-            room_window_start_pos = LEFT_MOTOR.get_position()
-            room_detected_false.clear()
-
-            # Count this door scan
-            DOOR_SCANS += 1
-            print(f"[main] Room window started at door #{DOOR_SCANS}: tracking 0.14 m while wall-following continues.")
-
-        # If we are in the 0.14 m window
-        if room_window_active:
-            # Check how far we've travelled since the window started
-            current_pos = LEFT_MOTOR.get_position()
-            delta_deg = abs(current_pos - room_window_start_pos)
-            dist_travelled = delta_deg / DIST_TO_DEG
-            print(f"[main] Room window distance travelled: {dist_travelled:.3f} m")
-
-            # If Red was seen in this window => cancel room entry
-            if room_detected_false.is_set():
-                print("[main] Room window cancelled. Red detected.")
-                room_window_active = False
-                room_detected.clear()
+            # If we just detected a doorway and no window is active yet
+            if room_detected.is_set() and not room_window_active:
+                room_window_active = True
+                room_window_start_pos = LEFT_MOTOR.get_position()
                 room_detected_false.clear()
-                # continue normal navigation
-            # If we've gone at least 0.14 m without Red-> enter room
-            elif dist_travelled >= ROOM_FORWARD_DIST:
-                print("[main] Room confirmed after 0.14 m. Stopping path following and running drop_off.py")
 
-                # Stop motors
-                LEFT_MOTOR.set_dps(0)
-                RIGHT_MOTOR.set_dps(0)
+                # Count this door scan
+                globals.DOOR_SCANS += 1
+                print(f"[main] Room window started at door #{globals.DOOR_SCANS}: tracking 0.14 m while wall-following continues.")
 
-                # Stop detection thread
-                stop_detection.set()
-                room_thread.join()
-                print("[main] Room detection thread stopped.")
+            # If we are in the 0.14 m window
+            if room_window_active:
+                # Check how far we've travelled since the window started
+                current_pos = LEFT_MOTOR.get_position()
+                delta_deg = abs(current_pos - room_window_start_pos)
+                dist_travelled = delta_deg / DIST_TO_DEG
+                print(f"[main] Room window distance travelled: {dist_travelled:.3f} m")
 
-                # Run drop_off.py
-                subprocess.run(["python3", "drop_off.py"])
+                # If Red was seen in this window => cancel room entry
+                if room_detected_false.is_set():
+                    print("[main] Room window cancelled. Red detected.")
+                    room_window_active = False
+                    room_detected.clear()
+                    room_detected_false.clear()
+                    # continue normal navigation
+                # If we've gone at least 0.14 m without Red-> enter room
+                elif dist_travelled >= ROOM_FORWARD_DIST and not room_detected_false.is_set():
+                    print("[main] Room confirmed after 0.14 m. Stopping path following and running drop_off.py")
 
-                snd = Sound(duration=0.6, volume=80, pitch="C5")
-                snd.play().wait_done()
+                    # Stop motors
+                    LEFT_MOTOR.set_dps(0)
+                    RIGHT_MOTOR.set_dps(0)
 
-                # Update package count, one package delivered in this room
-                global PACKAGES
-                PACKAGES = max(PACKAGES - 1, 0)
-                print(f"[main] Packages remaining: {PACKAGES}")
+                    # Stop detection thread
+                    stop_detection.set()
+                    room_thread.join()
+                    print("[main] Room detection thread stopped.")
 
-                # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
-                if is_mission_complete():
-                    print("[main] Mission complete! Go to mail room.")
-                    #  HERE WE WOULD RUN THE MISSION COMPLETION SCRIPT
-                    BP.reset_all()
-                    break   # end program
+                    # Run drop_off.py
+                    subprocess.run(["python3", "drop_off.py"])
 
-                reset_all_sensors()
+                    snd = Sound(duration=0.6, volume=80, pitch="C5")
+                    snd.play().wait_done()
 
-                # Reset room window state
-                room_window_active = False
-                room_window_start_pos = None
+                    # Update package count, one package delivered in this room
+                    #global globals.PACKAGES
+                    globals.PACKAGES = max(globals.PACKAGES - 1, 0)
+                    print(f"[main] globals.PACKAGES remaining: {globals.PACKAGES}")
 
-                # Create new events and new thread for the next room
-                stop_detection = Event()
-                room_detected = Event()
-                room_detected_false = Event()
+                    # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
+                    if is_mission_complete():
+                        print("[main] Mission complete! Go to mail room.")
+                        #  HERE WE WOULD RUN THE MISSION COMPLETION SCRIPT
+                        BP.reset_all()
+                        break   # end program
 
-                room_thread = Thread(
-                    target=room_detection.room_detection_loop,
-                    args=(stop_detection, room_detected, room_detected_false),
-                    daemon=True,
-                )
-                room_thread.start()
-                print("[main] Room detection thread restarted after drop_off.")
+                    reset_all_sensors()
 
-                # Resume wall-following
-                LEFT_MOTOR.set_dps(FORWARD_SPEED)
-                RIGHT_MOTOR.set_dps(FORWARD_SPEED)
+                    # Reset room window state
+                    room_window_active = False
+                    room_window_start_pos = None
 
-                continue
+                    # Create new events and new thread for the next room
+                    stop_detection = Event()
+                    room_detected = Event()
+                    room_detected_false = Event()
 
-        # 2) Wall-following navigation
-        #    This continues during room detection
-        error = WALL_DST - dist
-        print(dist)
-        print(error)
+                    room_thread = Thread(
+                        target=room_detection.room_detection_loop,
+                        args=(stop_detection, room_detected, room_detected_false),
+                        daemon=True,
+                    )
+                    room_thread.start()
+                    print("[main] Room detection thread restarted after drop_off.")
 
-        if abs(error) <= DEADBAND:
-            LEFT_MOTOR.set_dps(FORWARD_SPEED)
-            RIGHT_MOTOR.set_dps(FORWARD_SPEED)
-            print("go straight")
-        elif error < -DEADBAND_ROOM:
-            print("go right")
-            left_speed = FORWARD_SPEED + (Kp * error)
-            right_speed = FORWARD_SPEED - (Kp * error)
-            max_speed = POWER_LIMIT
-            left_speed = clamp(left_speed, -max_speed, max_speed)
-            right_speed = clamp(right_speed, -max_speed, max_speed)
-            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
-            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
-            LEFT_MOTOR.set_dps(left_speed)
-            RIGHT_MOTOR.set_dps(right_speed)
-        elif error > DEADBAND_WALL:
-            print("go left")
-            left_speed = FORWARD_SPEED + (Kp * error)
-            right_speed = FORWARD_SPEED - (Kp * error)
-            max_speed = POWER_LIMIT
-            left_speed = clamp(left_speed, -max_speed, max_speed)
-            right_speed = clamp(right_speed, -max_speed, max_speed)
-            LEFT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
-            RIGHT_MOTOR.set_limits(POWER_LIMIT, abs(FORWARD_SPEED))
-            LEFT_MOTOR.set_dps(left_speed)
-            RIGHT_MOTOR.set_dps(right_speed)
+                    # Resume wall-following
+                    LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                    RIGHT_MOTOR.set_dps(FORWARD_SPEED)
 
-        time.sleep(SENSOR_POLL_SLEEP)
+                    continue
+
+            time.sleep(SENSOR_POLL_SLEEP)
 
 
-except KeyboardInterrupt:
-    BP.reset_all()
+    except KeyboardInterrupt:
+        BP.reset_all()
+
+if __name__ == "__main__":
+    main()
