@@ -351,6 +351,19 @@ def main():
                     room_detected.clear()
                     room_detected_false.clear()
 
+            if just_rotated:
+                current_pos = LEFT_MOTOR.get_position()
+                delta_deg = abs(current_pos - stop_room_detection_start_pos)
+                dist_travelled = delta_deg / DIST_TO_DEG
+                print(f"[main] Stop room detection distance: {dist_travelled:.3f} m")
+
+                if dist_travelled >= 0.30:
+                    print("[main] 0.30 m reached, after turn corner, room detection re-enabled.")
+                    just_rotated = False
+                    stop_room_detection_start_pos = None
+                    room_detected.clear()
+                    room_detected_false.clear()
+
             # 2) Handle turning corners
             detected_color = detect_color()
             if detected_color == "white" and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
@@ -361,6 +374,7 @@ def main():
                     # small pause to let motors settle and to move off the patch
                     time.sleep(0.2)
                     just_rotated = True
+                    stop_room_detection_turn_start_pos = LEFT_MOTOR.get_position()
                     continue
 
             time.sleep(SENSOR_POLL_SLEEP)
