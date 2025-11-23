@@ -261,7 +261,7 @@ def main():
                 print(f"[main] Room window started at door #{globals.DOOR_SCANS}: tracking 0.14 m while wall-following continues.")
 
             # If we are in the 0.14 m window
-            if room_window_active:
+            if room_window_active and not just_rotated:
                 # Check how far we've travelled since the window started
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - room_window_start_pos)
@@ -365,16 +365,24 @@ def main():
                     room_detected_false.clear()
 
             # 2) Handle turning corners
+            
             detected_color = detect_color()
+            turn_start_postion = LEFT_MOTOR.get_position()
             if detected_color == "white" and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
             # require sustained white reading to avoid false positives
-                if is_color_sustained("white", samples=50):
-                    print("At destination, stopping and rotating")
+                current_pos = LEFT_MOTOR.get_position()
+                delta_deg = abs(current_pos - turn_start_postion)
+                dist_travelled = delta_deg / DIST_TO_DEG
+                print(f"[main] Start white distance before turn: {dist_travelled:.3f} m")
+                while dist_travelled < 0.12:
+                   LEFT_MOTOR.set_dps(FORWARD_SPEED)
+                   RIGHT_MOTOR.set_dps(FORWARD_SPEED)     
+                if dist_travelled >= 0.12:
+                    print("[main] 0.12 m reached, initiating turn at corner.")
                     rotate(90, 180)
                     # small pause to let motors settle and to move off the patch
                     time.sleep(0.2)
                     just_rotated = True
-                    stop_room_detection_turn_start_pos = LEFT_MOTOR.get_position()
                     continue
 
             time.sleep(SENSOR_POLL_SLEEP)
