@@ -233,6 +233,7 @@ def main():
         room_window_start_pos = None # encoder position when Yellow/Orange first detected
         stop_room_detection = False
         stop_room_detection_start_pos = None
+        just_rotated = False
 
 
         while True:
@@ -251,7 +252,7 @@ def main():
             # 1) Handle room detection events from the thread
 
             # If we just detected a doorway and no window is active yet
-            if room_detected.is_set() and not room_window_active and not stop_room_detection:
+            if room_detected.is_set() and not room_window_active and not stop_room_detection and not just_rotated:
                 room_window_active = True
                 room_window_start_pos = LEFT_MOTOR.get_position()
                 room_detected_false.clear()
