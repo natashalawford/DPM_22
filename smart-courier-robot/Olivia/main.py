@@ -294,7 +294,8 @@ def main():
                     # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
                     if is_mission_complete():
                         print("[main] Mission complete! Go to mail room.")
-                        #  HERE WE WOULD RUN THE MISSION COMPLETION SCRIPT
+                        # Run mission_completion.py
+                        subprocess.run(["python3", "mission_completion.py"])
                         BP.reset_all()
                         break   # end program
 
