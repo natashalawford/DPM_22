@@ -178,7 +178,7 @@ def path_correction(dist, error):
             return
 
 def is_mission_complete():
-    return (globals.PACKAGES == 0) and globals.DOOR_SCANS
+    return (globals.PACKAGES == 0) 
 
 def reset_all_sensors():
     
@@ -351,7 +351,7 @@ def main():
                 if dist_travelled >= ROOM_FORWARD_DIST:
                     print("[main] 0.14 m reached, room detection re-enabled.")
                     stop_room_detection = False
-                    stop_room_detection_start_pos = None
+                    #stop_room_detection_start_pos = None
                     room_detected.clear()
                     room_detected_false.clear()
 
@@ -361,7 +361,7 @@ def main():
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - stop_room_detection_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
-                print(f"[main] Stop room detection distance: {dist_travelled:.3f} m")
+                print(f"[main] Distance travelled: {dist_travelled:.3f} m")
 
                 if dist_travelled >= 0.40:
                     print("[main] 0.30 m reached, after turn corner, room detection re-enabled.")
@@ -383,16 +383,16 @@ def main():
                 delta_deg = abs(current_pos - turn_start_postion)
                 dist_travelled = delta_deg / DIST_TO_DEG
                 print(f"[main] Start white distance before turn: {turn_start_pos:.3f} m")
-                while dist_travelled < 0.11:
+                while dist_travelled < 0.15:
                     print (f"[main] Distance travelled from white start pos: {dist_travelled:.3f} m")
                     LEFT_MOTOR.set_dps(FORWARD_SPEED)
                     RIGHT_MOTOR.set_dps(FORWARD_SPEED)
                     current_pos = LEFT_MOTOR.get_position()
                     delta_deg = abs(current_pos - turn_start_postion)
                     dist_travelled = delta_deg / DIST_TO_DEG
-                if dist_travelled >= 0.11:
+                if dist_travelled >= 0.15:
                     print("[main] 0.12 m reached, initiating turn at corner.")
-                    rotate(90, 180)
+                    rotate(-90, 180)
                     # small pause to let motors settle and to move off the patch
                     time.sleep(0.2)
                     just_rotated = True

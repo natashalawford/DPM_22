@@ -1,5 +1,5 @@
 from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
-from globals import DOOR_COUNT 
+from globals import DOOR_SCANS
 import time
 import math
 
@@ -108,10 +108,10 @@ def main():
     init_motor(RIGHT_MOTOR) # Initialize R Motor
     print("motor initialized")
     try:
-        print("DOOR_COUNT: ", DOOR_COUNT)
+        print("DOOR_SCANS: ", DOOR_SCANS)
 
         #Paths 1, 3
-        if DOOR_COUNT == 2 or DOOR_COUNT == 4: #need to fix: when this if statement gets issued with doorcount, startsrunning main, or just 
+        if DOOR_SCANS == 2 or DOOR_SCANS == 4: #need to fix: when this if statement gets issued with doorcount, startsrunning main, or just 
              print("Taking path 1")
          
              #go backwards 24.5 cm using path correction
@@ -127,7 +127,7 @@ def main():
 
         #might need to update this depending on how door scans is updated by malak  
         #Path 2
-        elif DOOR_COUNT == 5: 
+        elif DOOR_SCANS == 5: 
             print("Taking path 2")
             
             #go forward 24.5 cm using path correction
