@@ -1,7 +1,8 @@
 from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
-from globals import DOOR_SCANS
 import time
 import math
+import sys
+DOOR_SCANS = int(sys.argv[1])
 
 #DRIVING
 FORWARD_SPEED = 100        # speed constant = 30% power
@@ -115,7 +116,7 @@ def main():
              print("Taking path 1")
          
              #go backwards 24.5 cm using path correction
-             move_dist_fwd(-0.27, FORWARD_SPEED)
+             move_dist_fwd(-0.25, FORWARD_SPEED)
              
              #rotate 90 degrees counterclockwise
              #todo: implement rotation using gyro

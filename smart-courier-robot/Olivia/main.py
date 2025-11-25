@@ -308,7 +308,7 @@ def main():
                     if is_mission_complete():
                         print("[main] Mission complete! Go to mail room.")
                         # Run mission_completion.py
-                        subprocess.run(["python3", "mission_completion.py"])
+                        subprocess.run(["python3", "mission_completion.py", str(globals.DOOR_SCANS)])
                         BP.reset_all()
                         break   # end program
 

@@ -8,7 +8,6 @@ color = EV3ColorSensor(3)
 def detect_color():
     try:
         r, g, b = color.get_rgb()
-        print(f"[room_detection] RGB: {r}, {g}, {b}")
         
         color_ranges = {
             "Black":  (0, 60,   0, 60,   0, 60),
@@ -42,7 +41,6 @@ def detect_color():
               color_ranges["Yellow"][4] <= b <= color_ranges["Yellow"][5]):
             detected_color = "Yellow"
 
-        print(f"[room_detection] Detected color: {detected_color}")
         return detected_color
 
     except SensorError:
@@ -68,6 +66,7 @@ def room_detection_loop(stop_detection: Event,
         if room_detected.is_set() and current_color == "Red":
             print("[room_detection] Red detected. Do not enter.")
             room_detected_false.set()
+            
 
         last_color = current_color
         time.sleep(0.05)
