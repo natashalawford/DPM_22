@@ -5,6 +5,7 @@ import subprocess
 from utils.sound import Sound
 from threading import Thread, Event
 import room_detection
+from stop_robot import stop_robot_thread
 import globals
 
 
@@ -41,15 +42,6 @@ Kp = 10.0
 DEADBAND = 0.1
 
 
-def stop_robot():
-    try:
-        if T_SENSOR.is_pressed():  # Press touch sensor to stop robot
-            print("Button pressed")
-            BP.reset_all()
-            exit()
-        time.sleep(SENSOR_POLL_SLEEP)
-    except SensorError as error:
-        print(error)
 def detect_color():
     """Detect color based on RGB value ranges"""
     try:
@@ -215,6 +207,10 @@ def main():
         angle = gyro.get_abs_measure()
         #print(f"gyro angle: {angle}")
 
+        stop_thread = Thread(target=stop_robot_thread, daemon=True)
+        stop_thread.start()
+        print("[main] Emergency stop thread started.")
+
         # THREADING SETUP FOR ROOM DETECTION
         stop_detection = Event()
         room_detected = Event()
@@ -225,6 +221,8 @@ def main():
             args=(stop_detection, room_detected, room_detected_false),
             daemon=True,
         )
+
+
         room_thread.start()
         print("[main] Room detection thread started.")
 
@@ -237,7 +235,6 @@ def main():
 
 
         while True:
-            stop_robot()
 
             print(f"Door count: {globals.DOOR_SCANS}")
             # Gyroscope
@@ -253,7 +250,6 @@ def main():
 
             # If we just detected a doorway and no window is active yet
             if room_detected.is_set() and not room_window_active and not stop_room_detection and not just_rotated:
-                stop_robot()
                 room_window_active = True
                 room_window_start_pos = LEFT_MOTOR.get_position()
                 room_detected_false.clear()
@@ -265,7 +261,6 @@ def main():
             # If we are in the 0.14 m window
             if room_window_active and not just_rotated:
                 # Check how far we've travelled since the window started
-                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - room_window_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
@@ -342,7 +337,6 @@ def main():
                     continue
 
             if stop_room_detection:
-                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - stop_room_detection_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
@@ -357,7 +351,6 @@ def main():
 
             if just_rotated:
                 print("just rotated, going straight 40 cm w/o door scanning")
-                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - stop_room_detection_start_pos)
                 dist_travelled = delta_deg / DIST_TO_DEG
@@ -378,7 +371,6 @@ def main():
             if (detected_color == "White") and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
             # require sustained white reading to avoid false positives
                 print("white detected, preparing before 90 deg turn")
-                stop_robot()
                 current_pos = LEFT_MOTOR.get_position()
                 delta_deg = abs(current_pos - turn_start_postion)
                 dist_travelled = delta_deg / DIST_TO_DEG
