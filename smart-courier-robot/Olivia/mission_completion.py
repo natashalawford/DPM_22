@@ -2,7 +2,10 @@ from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_
 import time
 import math
 import sys
-DOOR_SCANS = int(sys.argv[1])
+from threading import Thread
+from stop_robot import stop_robot_thread
+DOOR_SCANS = 2
+#DOOR_SCANS = int(sys.argv[1])
 
 #DRIVING
 FORWARD_SPEED = 100        # speed constant = 30% power
@@ -27,16 +30,6 @@ WALL_DST = 5.7
 us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
 Kp = 20.0         
 DEADBAND = 0.3
-
-def stop_robot():
-    try:
-        if T_SENSOR.is_pressed(): # Press touch sensor to stop robot
-            print("Button pressed")
-            BP.reset_all()
-            exit()
-        time.sleep(SENSOR_POLL_SLEEP) # Use sensor polling interval here
-    except SensorError as error:
-        print(error) # On exception or error, print error code
 
 def init_motor(motor: Motor):
     """Function to initialize a motor"""
@@ -108,6 +101,10 @@ def main():
     init_motor(LEFT_MOTOR) # Initialize L Motor
     init_motor(RIGHT_MOTOR) # Initialize R Motor
     print("motor initialized")
+
+    stop_thread = Thread(target=stop_robot_thread, daemon=True)
+    stop_thread.start()
+    
     try:
         print("DOOR_SCANS: ", DOOR_SCANS)
 
@@ -148,8 +145,8 @@ def main():
             #go forwards 50 cm into mail room
             move_dist_fwd(0.57, FORWARD_SPEED)
         
-        while True:
-             stop_robot()
+        #while True:
+            #stop_robot()
             #rotate 90 degrees counterclockwise using gyroscope
             
 

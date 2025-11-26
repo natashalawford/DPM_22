@@ -1,10 +1,12 @@
-import brickpi3
 from utils.brick import wait_ready_sensors, EV3ColorSensor, BP, TouchSensor, Motor, SensorError
 import time
 import globals
+from threading import Thread
+from stop_robot import stop_robot_thread
 
-BP = brickpi3.BrickPi3()
 color = EV3ColorSensor(3)
+T_SENSOR = TouchSensor(2)
+
 SWEEP_ARM = Motor("C")
 wait_ready_sensors()
 
@@ -68,6 +70,8 @@ def detect_color():
         return "Unknown"
 
 try:
+    wait_ready_sensors()
+    
     while globals.SWEEPS < 10:
         detected_color = detect_color()
         print("Color name:", detected_color)

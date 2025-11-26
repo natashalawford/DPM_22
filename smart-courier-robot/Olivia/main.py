@@ -7,6 +7,7 @@ from threading import Thread, Event
 import room_detection
 from stop_robot import stop_robot_thread
 import globals
+import os
 
 
 #DRIVING
@@ -290,7 +291,7 @@ def main():
 
                     # Run drop_off.py
                     subprocess.run(["python3", "drop_off.py"])
-
+                    
                     snd = Sound(duration=0.6, volume=80, pitch="C5")
                     snd.play().wait_done()
 
@@ -299,6 +300,7 @@ def main():
                     globals.PACKAGES = max(globals.PACKAGES - 1, 0)
                     print(f"[main] globals.PACKAGES remaining: {globals.PACKAGES}")
 
+                    globals.PACKAGES = 0
                     # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
                     if is_mission_complete():
                         print("[main] Mission complete! Go to mail room.")

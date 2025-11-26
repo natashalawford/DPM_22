@@ -4,6 +4,7 @@ import time
 import math
 import globals
 from threading import Thread
+from stop_robot import stop_robot_thread
 import runpy
 import os
 
@@ -23,7 +24,7 @@ POWER_LIMIT = 80        # Power limit = 80%
 SPEED_LIMIT = 720       # Speed limit = 720dps
 
 #PORTS
-T_SENSOR = TouchSensor(1) # colour Sensor in Port S1 CHANGE WHEN IN LAB
+T_SENSOR = TouchSensor(2) # colour Sensor in Port S1 CHANGE WHEN IN LAB
 LEFT_MOTOR = Motor("A")   # Left motor in Port A
 RIGHT_MOTOR = Motor("D")  # Right motor in Port D
 DROP_MOTOR = Motor("B")  # Right motor in Port D
@@ -109,6 +110,8 @@ try:
     wait_ready_sensors() # Wait for sensors to initialize
     init_motor(DROP_MOTOR)
 
+    stop_thread = Thread(target=stop_robot_thread, daemon=True)
+    stop_thread.start()
     
     # turn 90 DEG into office
     rotate(90, 180)
@@ -125,6 +128,7 @@ try:
     color_script = os.path.join(os.path.dirname(__file__), "color_polling.py")
     color_thread = Thread(target=lambda: runpy.run_path(color_script), daemon=True)
     color_thread.start()
+    time.sleep(0.2)
     direction = 1
     while globals.SWEEPS < 10 and globals.COLOR != "Green":
         #sweep, mv fwd, add 1 to sweep
@@ -138,7 +142,9 @@ try:
     # Drop off package if green was detected
     if globals.COLOR == "Green":
         drop_package()
-        globals.PACKAGES -= 1
+        #globals.PACKAGES -= 1
+        #globals.PACKAGES = max(globals.PACKAGES - 1, 0)
+        #print(f"[main] globals.PACKAGES remaining: {globals.PACKAGES}")
 
     # Back out of office based on how many sweeps were completed:
     move_dist_fwd( (-FWD_SWEEP_DIST)*globals.SWEEPS, 150)
