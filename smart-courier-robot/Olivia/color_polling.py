@@ -84,7 +84,7 @@ try:
             SWEEP_ARM.set_power(0)
             break
 
-        time.sleep(0.2)
+        time.sleep(0.01)
 
 except KeyboardInterrupt:
     BP.reset_all()

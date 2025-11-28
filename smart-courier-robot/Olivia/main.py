@@ -42,6 +42,9 @@ us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
 Kp = 10.0
 DEADBAND = 0.1
 
+#PACKAGES
+PACKAGES = 2
+
 
 def detect_color():
     """Detect color based on RGB value ranges"""
@@ -170,8 +173,8 @@ def path_correction(dist, error):
             RIGHT_MOTOR.set_dps(right_speed)
             return
 
-def is_mission_complete():
-    return (globals.PACKAGES == 0) 
+def is_mission_complete(packages):
+    return (packages == 0) 
 
 def reset_all_sensors():
     
@@ -204,7 +207,9 @@ def is_color_sustained(target, samples=3, delay=SENSOR_POLL_SLEEP):
 
 def main():
     try:
-        wait_ready_sensors()
+        print("wrs")
+        wait_ready_sensors(True)
+        print("done")
         angle = gyro.get_abs_measure()
         #print(f"gyro angle: {angle}")
 
@@ -300,14 +305,15 @@ def main():
                         print("main.py read:", status)
 
                     if status == "DROPPED":
-                        globals.PACKAGES -= 1
+                        global PACKAGES
+                        PACKAGES -= 1
 
                     # Update package count, one package delivered in this room
                     #global globals.PACKAGES
-                    print(f"[main] globals.PACKAGES remaining: {globals.PACKAGES}")
+                    print(f"[main] PACKAGES remaining: {PACKAGES}")
 
                     # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
-                    if is_mission_complete():
+                    if is_mission_complete(PACKAGES):
                         print("[main] Mission complete! Go to mail room.")
                         # Run mission_completion.py
                         subprocess.run(["python3", "mission_completion.py", str(globals.DOOR_SCANS)])

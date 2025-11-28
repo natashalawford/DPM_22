@@ -1,11 +1,12 @@
 from utils.brick import BP, EV3UltrasonicSensor, TouchSensor, Motor, wait_ready_sensors, SensorError, EV3ColorSensor
+from utils import sound
 import time
 import math
 import sys
+import os
 from threading import Thread
 from stop_robot import stop_robot_thread
-DOOR_SCANS = 2
-#DOOR_SCANS = int(sys.argv[1])
+DOOR_SCANS = int(sys.argv[1])
 
 #DRIVING
 FORWARD_SPEED = 100        # speed constant = 30% power
@@ -30,6 +31,8 @@ WALL_DST = 5.7
 us = EV3UltrasonicSensor(1) # Ultrasonic sensor in Port 1
 Kp = 20.0         
 DEADBAND = 0.3
+
+
 
 def init_motor(motor: Motor):
     """Function to initialize a motor"""
@@ -95,6 +98,9 @@ def move_dist_fwd(distance, speed): # meters, dps
         wait_for_motor(LEFT_MOTOR)
     except IOError as error:
         print(error)
+        
+def play_sound():
+    os.system("aplay mission_complete.wav")
 
 def main():
     wait_ready_sensors()
@@ -121,6 +127,9 @@ def main():
              
              #go forwards 50 cm into mail room
              move_dist_fwd(0.57, FORWARD_SPEED)
+             
+             #play sound
+             play_sound()
 
 
         #might need to update this depending on how door scans is updated by malak  
@@ -144,6 +153,9 @@ def main():
             
             #go forwards 50 cm into mail room
             move_dist_fwd(0.57, FORWARD_SPEED)
+            
+            #play sound
+            play_sound()
         
         #while True:
             #stop_robot()

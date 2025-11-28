@@ -20,21 +20,21 @@ ORIENT_TO_DEG = AXLE_LENGTH / WHEEL_RADIUS # Convert whole robot rotation to whe
 FMD_SPEED = 150         # (deg per sec) Moving forward speed
 TRN_SPEED = 180         # (deg per sec) Turning a corner speed
 
-POWER_LIMIT = 80        # Power limit = 80%
+POWER_LIMIT = 120        # Power limit = 80%
 SPEED_LIMIT = 720       # Speed limit = 720dps
 
 #PORTS
 T_SENSOR = TouchSensor(2) # colour Sensor in Port S1 CHANGE WHEN IN LAB
-LEFT_MOTOR = Motor("D")   # Left motor in Port D
-RIGHT_MOTOR = Motor("A")  # Right motor in Port A
+LEFT_MOTOR = Motor("A")   # Left motor in Port D (in A for now)
+RIGHT_MOTOR = Motor("D")  # Right motor in Port A (in D for now)
 DROP_MOTOR = Motor("B")  
 SWEEP_ARM = Motor("C")
 
 # SWEEPING ARM CONSTANTS
 FWD_SWEEP_DIST = 0.02 # distance robot moves forward between each sweep (m)
-SWEEP_SPEED = 50 # Speed of sweeping arm
+SWEEP_SPEED = 60 # Speed of sweeping arm
 SWEEPING_ANGLE = 110 # Angle sweeping arm moves each sweep (deg)
-FWD_SWEEP_SPEED = 120 # Speed the robot is moving between each sweep
+FWD_SWEEP_SPEED = 140 # Speed the robot is moving between each sweep
 
 
 def wait_for_motor(motor: Motor):
@@ -91,8 +91,6 @@ def drop_package():
         DROP_MOTOR.set_position_relative(90)
         wait_for_motor(DROP_MOTOR)
         print("dropped off")
-        # Play success sound :
-        Sound(duration=0.6, volume=80, pitch="C5").play().wait_done()
     except IOError as error:
         print(error)
 
@@ -105,6 +103,8 @@ def sweep(direction):
     except IOError as error:
         print(error)
 
+def play_sound():
+    os.system("aplay package_delivered.wav")
 
 try:
     wait_ready_sensors() # Wait for sensors to initialize
@@ -147,6 +147,14 @@ try:
         # Print check
         with open("state.txt", "r") as f:
             print("drop_off wrote:", f.read().strip())
+        play_sound()
+    else:
+        with open("state.txt", "w") as f:
+            f.write("NOT DELIVERED")
+        # Print check
+        with open("state.txt", "r") as f:
+            print("drop_off wrote:", f.read().strip())
+        
 
     # Back out of office based on how many sweeps were completed:
     move_dist_fwd( (-FWD_SWEEP_DIST)*globals.SWEEPS, 150)
