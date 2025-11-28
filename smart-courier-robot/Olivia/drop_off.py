@@ -25,9 +25,9 @@ SPEED_LIMIT = 720       # Speed limit = 720dps
 
 #PORTS
 T_SENSOR = TouchSensor(2) # colour Sensor in Port S1 CHANGE WHEN IN LAB
-LEFT_MOTOR = Motor("A")   # Left motor in Port A
-RIGHT_MOTOR = Motor("D")  # Right motor in Port D
-DROP_MOTOR = Motor("B")  # Right motor in Port D
+LEFT_MOTOR = Motor("D")   # Left motor in Port D
+RIGHT_MOTOR = Motor("A")  # Right motor in Port A
+DROP_MOTOR = Motor("B")  
 SWEEP_ARM = Motor("C")
 
 # SWEEPING ARM CONSTANTS
@@ -142,9 +142,11 @@ try:
     # Drop off package if green was detected
     if globals.COLOR == "Green":
         drop_package()
-        #globals.PACKAGES -= 1
-        #globals.PACKAGES = max(globals.PACKAGES - 1, 0)
-        #print(f"[main] globals.PACKAGES remaining: {globals.PACKAGES}")
+        with open("state.txt", "w") as f:
+            f.write("DROPPED")
+        # Print check
+        with open("state.txt", "r") as f:
+            print("drop_off wrote:", f.read().strip())
 
     # Back out of office based on how many sweeps were completed:
     move_dist_fwd( (-FWD_SWEEP_DIST)*globals.SWEEPS, 150)

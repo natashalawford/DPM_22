@@ -11,14 +11,14 @@ import os
 
 
 #DRIVING
-FORWARD_SPEED = 100        # speed constant = 30% power
+FORWARD_SPEED = 115        # speed constant = 30% power
 SENSOR_POLL_SLEEP = 0.05
 
 #TURNING
 WHEEL_RADIUS = 0.022
 AXEL_LENGTH = 0.078
 ORIENTTODEG = AXEL_LENGTH / WHEEL_RADIUS
-POWER_LIMIT = 110
+POWER_LIMIT = 125
 MOTOR_POLL_DELAY = 0.05
 TURNING = "neutral"
 
@@ -130,14 +130,14 @@ def path_correction(dist, error):
     # small errors -> keep straight to avoid hunting
         if abs(error) <= DEADBAND:
             LEFT_MOTOR.set_dps(FORWARD_SPEED)
-            print(f"left speed: {FORWARD_SPEED}")
+            #print(f"left speed: {FORWARD_SPEED}")
             RIGHT_MOTOR.set_dps(FORWARD_SPEED)
-            print(f"right speed: {FORWARD_SPEED}")
-            print("go straight")
+            #print(f"right speed: {FORWARD_SPEED}")
+            #print("go straight")
             return
             
         if error < -DEADBAND:
-            print("go right")
+            #print("go right")
             # compute wheel speeds
             left_speed = FORWARD_SPEED - (Kp * error)
             right_speed = FORWARD_SPEED + (Kp * error)
@@ -146,14 +146,14 @@ def path_correction(dist, error):
             left_speed = clamp(left_speed, -POWER_LIMIT, POWER_LIMIT)
             print(f"left speed: {left_speed}")
             right_speed = clamp(right_speed, -POWER_LIMIT, POWER_LIMIT)
-            print(f"right speed: {right_speed}")
+            #print(f"right speed: {right_speed}")
     
             LEFT_MOTOR.set_dps(left_speed)
             RIGHT_MOTOR.set_dps(right_speed)
             return
             
         elif error > DEADBAND:
-            print("go left")
+            #print("go left")
 
             # compute wheel speeds
             left_speed = FORWARD_SPEED - (Kp * error)
@@ -164,7 +164,7 @@ def path_correction(dist, error):
             left_speed = clamp(left_speed, -POWER_LIMIT, POWER_LIMIT)
             print(f"left speed: {left_speed}")
             right_speed = clamp(right_speed, -POWER_LIMIT, POWER_LIMIT)
-            print(f"right speed: {right_speed}")
+            #print(f"right speed: {right_speed}")
 
             LEFT_MOTOR.set_dps(left_speed)
             RIGHT_MOTOR.set_dps(right_speed)
@@ -233,11 +233,13 @@ def main():
         stop_room_detection = False
         stop_room_detection_start_pos = None
         just_rotated = False
+        rotation_count = 0
 
 
         while True:
 
             print(f"Door count: {globals.DOOR_SCANS}")
+            print(f"Rotation count: {rotation_count}")
             # Gyroscope
             new_angle = gyro.get_abs_measure()
             #print(f"gyro angle: {new_angle}")
@@ -250,7 +252,9 @@ def main():
             # 1) Handle room detection events from the thread
 
             # If we just detected a doorway and no window is active yet
-            if room_detected.is_set() and not room_window_active and not stop_room_detection and not just_rotated:
+            print(f"Room detected is set: #{room_detected.is_set()}")
+            
+            if (room_detected.is_set()) and (not room_window_active) and (not stop_room_detection) and (not just_rotated):
                 room_window_active = True
                 room_window_start_pos = LEFT_MOTOR.get_position()
                 room_detected_false.clear()
@@ -291,16 +295,17 @@ def main():
 
                     # Run drop_off.py
                     subprocess.run(["python3", "drop_off.py"])
-                    
-                    snd = Sound(duration=0.6, volume=80, pitch="C5")
-                    snd.play().wait_done()
+                    with open("state.txt", "r") as f:
+                        status = f.read().strip()
+                        print("main.py read:", status)
+
+                    if status == "DROPPED":
+                        globals.PACKAGES -= 1
 
                     # Update package count, one package delivered in this room
                     #global globals.PACKAGES
-                    globals.PACKAGES = max(globals.PACKAGES - 1, 0)
                     print(f"[main] globals.PACKAGES remaining: {globals.PACKAGES}")
 
-                    globals.PACKAGES = 0
                     # CHECK MISSION COMPLETION AND GO TO MAIL ROOM
                     if is_mission_complete():
                         print("[main] Mission complete! Go to mail room.")
@@ -362,15 +367,15 @@ def main():
                     print("[main] 0.30 m reached, after turn corner, room detection re-enabled.")
                     just_rotated = False
                     #stop_room_detection_start_pos = None
-                    #room_detected.clear()
-                    #room_detected_false.clear()
+                    room_detected.clear()
+                    room_detected_false.clear()
 
             # 2) Handle turning corners
             
             detected_color = detect_color()
             turn_start_postion = LEFT_MOTOR.get_position()
             turn_start_pos = turn_start_postion / DIST_TO_DEG
-            if (detected_color == "White") and (globals.DOOR_SCANS == 2 or globals.DOOR_SCANS == 3) and not just_rotated:
+            if (detected_color == "White") and ((globals.DOOR_SCANS == 2 and rotation_count == 0) or (globals.DOOR_SCANS == 3 and rotation_count == 1)) and not just_rotated:
             # require sustained white reading to avoid false positives
                 print("white detected, preparing before 90 deg turn")
                 current_pos = LEFT_MOTOR.get_position()
@@ -378,6 +383,7 @@ def main():
                 dist_travelled = delta_deg / DIST_TO_DEG
                 print(f"[main] Start white distance before turn: {turn_start_pos:.3f} m")
                 while dist_travelled < 0.15:
+                    print(f"Door count: {globals.DOOR_SCANS}")
                     print (f"[main] Distance travelled from white start pos: {dist_travelled:.3f} m")
                     LEFT_MOTOR.set_dps(FORWARD_SPEED)
                     RIGHT_MOTOR.set_dps(FORWARD_SPEED)
@@ -390,6 +396,7 @@ def main():
                     # small pause to let motors settle and to move off the patch
                     time.sleep(0.2)
                     just_rotated = True
+                    rotation_count += 1
                     stop_room_detection_start_pos = LEFT_MOTOR.get_position()
                 continue
 

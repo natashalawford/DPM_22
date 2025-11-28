@@ -41,6 +41,7 @@ def detect_color():
               color_ranges["Yellow"][4] <= b <= color_ranges["Yellow"][5]):
             detected_color = "Yellow"
 
+        print(f"[room_detection] Room detection color detected: #{detected_color}")
         return detected_color
 
     except SensorError:
@@ -56,6 +57,8 @@ def room_detection_loop(stop_detection: Event,
     while not stop_detection.is_set():
         current_color = detect_color()
 
+        print(f"[room_detection] Last color detected: #{last_color}")
+        print(f"[room_detection] Current color detected: #{current_color}")
         # Yellow/Orange = room detected
         if current_color in ("Yellow", "Orange") and last_color not in ("Yellow", "Orange"):
             print("[room_detection] Room detected.")
